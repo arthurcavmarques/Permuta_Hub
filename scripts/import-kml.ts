@@ -29,7 +29,11 @@ async function main() {
   const dryRun = flags['dry-run'] === true;
 
   const features = parseKml(await kmlTextFromFile(await readFile(file), basename(file)));
-  const { linked, unlinked } = groupByMemorial(features, mapping.memorial_prefix, mapping.memorial_pad);
+  const { linked, unlinked } = groupByMemorial(
+    features,
+    mapping.memorial_prefix,
+    mapping.memorial_pad,
+  );
   const pending: Array<KmlFeature & { reason: string }> = unlinked.map((f) => ({
     ...f,
     reason: 'nome/descrição sem número de MD',
@@ -45,7 +49,13 @@ async function main() {
       });
       if (error) fail(`Erro ao gravar ${memorial}: ${error.message}`);
       if (data) updated.push(memorial);
-      else feats.forEach((f) => pending.push({ ...f, reason: `${memorial} não existe no banco (importe o Land Bank antes)` }));
+      else
+        feats.forEach((f) =>
+          pending.push({
+            ...f,
+            reason: `${memorial} não existe no banco (importe o Land Bank antes)`,
+          }),
+        );
     }
   }
 
@@ -59,12 +69,20 @@ async function main() {
     features: features.length,
     linked_memorials: [...linked.keys()],
     updated,
-    pending: pending.map((p) => ({ name: p.name, reason: p.reason, geometry_type: p.geometry.type })),
+    pending: pending.map((p) => ({
+      name: p.name,
+      reason: p.reason,
+      geometry_type: p.geometry.type,
+    })),
     pending_geojson: pendingPath,
   });
 
-  console.log(`\n${dryRun ? '[SIMULAÇÃO — nada gravado] ' : ''}${features.length} feições lidas de ${file}`);
-  console.log(`  vinculadas a MD: ${linked.size}${dryRun ? '' : `  (gravadas: ${updated.length})`}`);
+  console.log(
+    `\n${dryRun ? '[SIMULAÇÃO — nada gravado] ' : ''}${features.length} feições lidas de ${file}`,
+  );
+  console.log(
+    `  vinculadas a MD: ${linked.size}${dryRun ? '' : `  (gravadas: ${updated.length})`}`,
+  );
   console.log(`  pendentes de vínculo manual: ${pending.length}`);
   for (const p of pending) console.log(`  ? "${p.name ?? '(sem nome)'}": ${p.reason}`);
   if (pendingPath) console.log(`\nPendentes (abra no Google Earth/geojson.io): ${pendingPath}`);

@@ -1,0 +1,39 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    @apply bg-bg text-ink antialiased;
+    font-family: theme('fontFamily.sans');
+  }
+  body {
+    @apply min-h-screen bg-bg;
+  }
+  /* Foco sempre visível para navegação por teclado */
+  :focus-visible {
+    outline: 2px solid rgb(var(--color-action));
+    outline-offset: 2px;
+  }
+}
+
+@layer utilities {
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* PDF do dossiê: A4, sem navegação nem controles. */
+@media print {
+  @page {
+    size: A4;
+    margin: 14mm 12mm;
+  }
+  html,
+  body {
+    background: #fff !important;
+  }
+  .print-avoid-break {
+    break-inside: avoid;
+  }
+}

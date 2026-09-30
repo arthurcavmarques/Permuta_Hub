@@ -39,7 +39,9 @@ export function parseKml(text: string): KmlFeature[] {
 export function memorialFromFeature(f: KmlFeature, prefix = 'MD-', pad = 3): string | null {
   for (const text of [f.name, f.description]) {
     if (!text) continue;
-    const m = text.match(/\b(?:MD|M\.D\.|memorial(?:\s+descritivo)?)\s*[-.#nº°]*\s*(\d{1,6})\b/i) ?? text.match(/^\s*(\d{1,6})\b/);
+    const m =
+      text.match(/\b(?:MD|M\.D\.|memorial(?:\s+descritivo)?)\s*[-.#nº°]*\s*(\d{1,6})\b/i) ??
+      text.match(/^\s*(\d{1,6})\b/);
     if (m) return normalizeMemorial(m[1], prefix, pad);
   }
   return null;

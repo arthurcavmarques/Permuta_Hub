@@ -101,10 +101,16 @@ export function findHeader(
   return null;
 }
 
-function mapStatus(raw: string | null, mapping: LandbankMapping, warnings: string[]): OpportunityStatus {
+function mapStatus(
+  raw: string | null,
+  mapping: LandbankMapping,
+  warnings: string[],
+): OpportunityStatus {
   if (!raw) return mapping.defaults.status;
   const key = normalizeKey(raw);
-  const hit = mapping.status_map[key] ?? Object.entries(mapping.status_map).find(([k]) => key.includes(k))?.[1];
+  const hit =
+    mapping.status_map[key] ??
+    Object.entries(mapping.status_map).find(([k]) => key.includes(k))?.[1];
   if (!hit) {
     warnings.push(`status "${raw}" não mapeado; usado "${mapping.defaults.status}"`);
     return mapping.defaults.status;
@@ -112,7 +118,11 @@ function mapStatus(raw: string | null, mapping: LandbankMapping, warnings: strin
   return hit;
 }
 
-function mapModels(raw: string | null, mapping: LandbankMapping, warnings: string[]): NegotiationModel[] {
+function mapModels(
+  raw: string | null,
+  mapping: LandbankMapping,
+  warnings: string[],
+): NegotiationModel[] {
   const out = new Set<NegotiationModel>();
   for (const item of splitList(raw)) {
     const key = normalizeKey(item);
@@ -154,7 +164,11 @@ export function parseLandbank(rows: Cell[][], mapping: LandbankMapping): Landban
       continue;
     }
 
-    const memorial = normalizeMemorial(get('memorial_number'), mapping.memorial_prefix, mapping.memorial_pad);
+    const memorial = normalizeMemorial(
+      get('memorial_number'),
+      mapping.memorial_prefix,
+      mapping.memorial_pad,
+    );
     if (!memorial) {
       result.rejected.push({ line, reason: 'sem número do memorial descritivo' });
       continue;
@@ -172,7 +186,11 @@ export function parseLandbank(rows: Cell[][], mapping: LandbankMapping): Landban
     const areaRaw = get('area_m2');
     const area = parseNumberBR(areaRaw);
     if (areaRaw && (area === null || area <= 0)) {
-      result.rejected.push({ line, memorial_number: memorial, reason: `área inválida: "${areaRaw}"` });
+      result.rejected.push({
+        line,
+        memorial_number: memorial,
+        reason: `área inválida: "${areaRaw}"`,
+      });
       continue;
     }
     const coefRaw = get('coefficient');
@@ -188,7 +206,12 @@ export function parseLandbank(rows: Cell[][], mapping: LandbankMapping): Landban
     const statusRaw = get('status');
 
     const extra: Record<string, unknown> = {
-      landbank: { imported_at: new Date().toISOString(), line, status_raw: statusRaw, commercial_progress: progress },
+      landbank: {
+        imported_at: new Date().toISOString(),
+        line,
+        status_raw: statusRaw,
+        commercial_progress: progress,
+      },
     };
     // D006: histórico "oferecida para" preservado até virar distributions (legacy) na Fase 1.
     if (offered.length) extra.legacy_offered_to = { companies: offered, raw: offeredRaw };

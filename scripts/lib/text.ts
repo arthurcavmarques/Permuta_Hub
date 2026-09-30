@@ -2,7 +2,7 @@
 export function normalizeKey(value: unknown): string {
   return String(value ?? '')
     .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
+    .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
     .replace(/[º°ª]/g, '')
     .replace(/m²/g, 'm2')
@@ -13,10 +13,7 @@ export function normalizeKey(value: unknown): string {
 /** Texto limpo: sem espaços duplicados/invisíveis; vazio vira null. */
 export function cleanText(value: unknown): string | null {
   if (value === null || value === undefined) return null;
-  const s = String(value)
-    .replace(/[ ​﻿]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
+  const s = String(value).replace(/[\u00a0\u200b\ufeff]/g, ' ').replace(/\s+/g, ' ').trim();
   return s === '' || s === '-' || s === '—' ? null : s;
 }
 
@@ -37,7 +34,10 @@ export function parseNumberBR(value: unknown): number | null {
   const hasComma = n.includes(',');
   if (hasDot && hasComma) {
     // O último separador é o decimal.
-    n = n.lastIndexOf(',') > n.lastIndexOf('.') ? n.replace(/\./g, '').replace(',', '.') : n.replace(/,/g, '');
+    n =
+      n.lastIndexOf(',') > n.lastIndexOf('.')
+        ? n.replace(/\./g, '').replace(',', '.')
+        : n.replace(/,/g, '');
   } else if (hasComma) {
     // Planilha brasileira: vírgula sozinha é sempre decimal ("1,500" = 1,5).
     n = n.replace(',', '.');

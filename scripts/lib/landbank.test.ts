@@ -30,7 +30,11 @@ describe('parseLandbank (planilha suja)', () => {
   });
 
   it('importa linhas válidas com número normalizado e metragem BR', () => {
-    expect(r.valid.map((v) => v.opportunity.memorial_number)).toEqual(['MD-042', 'MD-043', 'MD-045']);
+    expect(r.valid.map((v) => v.opportunity.memorial_number)).toEqual([
+      'MD-042',
+      'MD-043',
+      'MD-045',
+    ]);
     expect(r.valid[0].opportunity.area_m2).toBe(12400.5);
     expect(r.valid[1].opportunity.area_m2).toBe(15000);
     expect(r.valid[1].opportunity.neighborhood).toBe('Sarandi');

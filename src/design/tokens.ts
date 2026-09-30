@@ -32,7 +32,15 @@ export const colors = {
 export type ColorToken = keyof typeof colors;
 
 export const fonts = {
-  sans: ['Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif'],
+  sans: [
+    'Inter',
+    'ui-sans-serif',
+    'system-ui',
+    '-apple-system',
+    'Segoe UI',
+    'Roboto',
+    'sans-serif',
+  ],
 };
 
 export const radius = { sm: '4px', md: '6px', lg: '10px' };

@@ -33,7 +33,9 @@ async function main() {
   }
   if (!userId) fail('Usuário não encontrado.');
 
-  const { error: adminErr } = await db.from('platform_admins').upsert({ user_id: userId }, { onConflict: 'user_id' });
+  const { error: adminErr } = await db
+    .from('platform_admins')
+    .upsert({ user_id: userId }, { onConflict: 'user_id' });
   if (adminErr) fail(adminErr.message);
   console.log(`✔ ${email} é admin da plataforma.`);
 }

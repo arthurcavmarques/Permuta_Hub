@@ -5,6 +5,8 @@ import path from 'node:path';
 export default defineConfig({
   plugins: [react()],
   resolve: { alias: { '@': path.resolve(import.meta.dirname, 'src') } },
+  // O MapLibre carrega um web worker próprio; o pré-bundle do Vite quebra o caminho dele.
+  optimizeDeps: { exclude: ['maplibre-gl'] },
   test: {
     globals: true,
     environment: 'jsdom',

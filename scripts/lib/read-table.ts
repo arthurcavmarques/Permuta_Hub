@@ -7,7 +7,7 @@ import type { Cell } from './landbank';
 /** CSV exportado do Excel brasileiro costuma vir em Windows-1252; tenta UTF-8 primeiro. */
 export function decodeText(buf: Buffer): string {
   try {
-    return new TextDecoder('utf-8', { fatal: true }).decode(buf).replace(/^﻿/, '');
+    return new TextDecoder('utf-8', { fatal: true }).decode(buf).replace(/^\ufeff/, '');
   } catch {
     return new TextDecoder('windows-1252').decode(buf);
   }
@@ -41,7 +41,10 @@ export async function readTable(path: string, sheetName?: string): Promise<Cell[
     const wb = new ExcelJS.Workbook();
     await wb.xlsx.load(buf as unknown as ArrayBuffer);
     const ws = sheetName ? wb.getWorksheet(sheetName) : wb.worksheets[0];
-    if (!ws) throw new Error(`Aba "${sheetName}" não encontrada. Abas: ${wb.worksheets.map((w) => w.name).join(', ')}`);
+    if (!ws)
+      throw new Error(
+        `Aba "${sheetName}" não encontrada. Abas: ${wb.worksheets.map((w) => w.name).join(', ')}`,
+      );
     const rows: Cell[][] = [];
     ws.eachRow({ includeEmpty: true }, (row, n) => {
       const values: Cell[] = [];
