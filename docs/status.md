@@ -8,16 +8,22 @@
 | # | Tarefa | Situação |
 |---|---|---|
 | 0 | Arquivos de memória (`CLAUDE.md`, `decisions.md`, `status.md`) | feito |
-| 1 | Scaffold, CI, `.env.example`, Supabase local, runbook | a fazer |
-| 2 | Tokens de design + layout base | a fazer |
-| 3 | Migrations mínimas + RLS | a fazer |
-| 4 | Seed fictício | a fazer |
-| 5 | Login + script de admin | a fazer |
-| 6 | Importadores Land Bank e KML/KMZ | a fazer |
-| 7 | Listagem com filtros + mapa | a fazer |
-| 8 | Dossiê cego + PDF | a fazer |
-| 9 | Testes (pgTAP, Vitest, Playwright smoke) | a fazer |
-| 10 | Deploy | a fazer |
+| 1 | Scaffold, `.env.example`, Supabase local | feito — **falta CI (GitHub Actions) e `docs/runbook.md`** |
+| 2 | Tokens de design + layout base | feito |
+| 3 | Migrations mínimas + RLS | feito (+ `access_log` append-only antecipado) — **falta `docs/data-model.md`** |
+| 4 | Seed fictício | feito (25 áreas, 2 usuários locais) |
+| 5 | Login + script de admin | feito |
+| 6 | Importadores Land Bank e KML/KMZ | feito (com `--dry-run`) |
+| 7 | Listagem com filtros + mapa | feito |
+| 8 | Dossiê cego + PDF | feito — **falta esconder controles +/− do mapa na impressão** |
+| 9 | Testes | feito: pgTAP 20, Vitest 65, Playwright 9 |
+| 10 | Deploy | a fazer (aguarda contas Supabase/Cloudflare) |
+
+**Última sessão (2026-09-29):** tudo commitado no branch `fase-0`, sem remoto ainda.
+**Próximo passo:** CI + runbook + data-model → conectar repositório GitHub → deploy.
+
+Decisões técnicas a registrar em `decisions.md` na próxima sessão: D010 mapa via OpenFreeMap
+(gratuito, dados OSM, uso comercial ok); D011 filtro da lista no cliente (reavaliar acima de ~2 mil áreas).
 
 **Aceite (revisado, sem modo demo):** no celular, filtro e abro o dossiê cego de ≥10 áreas; teste automatizado prova que usuário sem permissão não lê `opportunity_sensitive` por chamada direta à API.
 
