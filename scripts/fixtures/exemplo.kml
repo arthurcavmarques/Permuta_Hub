@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+  <Document>
+    <name>Áreas fictícias</name>
+    <Placemark>
+      <name>MD 42 - Petrópolis</name>
+      <Polygon><outerBoundaryIs><LinearRing><coordinates>
+        -51.186,-30.041,0 -51.184,-30.041,0 -51.184,-30.039,0 -51.186,-30.039,0 -51.186,-30.041,0
+      </coordinates></LinearRing></outerBoundaryIs></Polygon>
+    </Placemark>
+    <Placemark>
+      <name>043</name>
+      <Point><coordinates>-51.13,-29.99,0</coordinates></Point>
+    </Placemark>
+    <Placemark>
+      <name>Terreno do seu João</name>
+      <description>sem número</description>
+      <Point><coordinates>-51.2,-30.1,0</coordinates></Point>
+    </Placemark>
+  </Document>
+</kml>
