@@ -12,3 +12,4 @@ data/
 supabase/.branches
 supabase/.temp
 import-reports/
+.wrangler

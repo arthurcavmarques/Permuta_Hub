@@ -43,6 +43,28 @@ Formato: data · decisão · contexto · alternativas · motivo.
 - **Supabase CLI:** via `npx supabase` (dependência de dev), sem instalação global.
 - **Gerenciador de pacotes:** npm.
 
+### D010 · 2026-10-01 · Tiles do mapa: OpenFreeMap
+- **Alternativas:** tiles OSM oficiais (política de uso proíbe app em produção), MapTiler/Mapbox (chave e cota).
+- **Motivo:** gratuito, sem chave, dados OSM, uso comercial permitido. Estilo `positron` (neutro).
+  Provedor isolado em `src/lib/map/` para troca futura.
+
+### D011 · 2026-10-01 · Filtros da listagem no cliente
+- Lista carrega todas as áreas visíveis (view cega) e filtra no navegador.
+- **Motivo:** dezenas a poucas centenas de áreas; resposta instantânea, inclusive no celular.
+- **Reavaliar** acima de ~2 mil áreas (filtro no servidor + paginação). `max_rows` da API = 1000.
+
+### D012 · 2026-10-01 · Frontend em Cloudflare Workers (assets estáticos) em vez de Pages
+- **Contexto:** o Arthur criou o worker `holy-leaf-c5c0`; a Cloudflare recomenda Workers com
+  assets estáticos para sites novos (Pages segue funcionando, sem novidades).
+- **Motivo:** mesmo custo (free), deploy por `wrangler deploy`, SPA nativo
+  (`not_found_handling`). Ajusta D002 só no produto da Cloudflare.
+- Deploy manual (`npm run deploy`) na Fase 0; deploy automático pelo CI quando houver token.
+
+### D013 · 2026-10-01 · Seeds separados: usuários locais × dados de demonstração
+- `supabase/seeds/01_local_users.sql` (senhas conhecidas) só local; `02_demo_data.sql`
+  (fictício) pode ir para a nuvem da demo. `db push` nunca aplica seeds.
+- **Motivo:** demo na nuvem com dados fictícios sem expor usuários de senha conhecida.
+
 ## Em aberto
 
 | Tema | Dono | Prazo |

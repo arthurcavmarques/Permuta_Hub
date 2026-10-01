@@ -25,7 +25,7 @@ O ativo é a **rede** e a **rastreabilidade de quem apresentou o quê a quem**. 
 ## Stack
 Supabase (Postgres + PostGIS, Auth, Storage, RLS, Edge Functions) · React + TypeScript + Vite + Tailwind + shadcn/ui ·
 React Router · TanStack Query · React Hook Form + Zod · MapLibre GL + OSM · Vitest · Playwright · pgTAP.
-Deploy: Supabase Cloud (free, região São Paulo) + Cloudflare Pages (free).
+Deploy: Supabase Cloud (free, região São Paulo) + Cloudflare Workers com assets estáticos (free, D012).
 
 ## Comandos
 ```bash
@@ -41,6 +41,7 @@ npm run test:e2e               # Playwright
 npm run import:landbank -- <arquivo.csv|xlsx>   # importa Land Bank
 npm run import:kml -- <arquivo.kml|kmz>         # importa geometrias
 npm run create-admin -- <email> <senha>         # cria admin da plataforma
+npm run deploy                 # build + publica no Cloudflare (ver runbook)
 ```
 Detalhes em `docs/runbook.md`.
 
