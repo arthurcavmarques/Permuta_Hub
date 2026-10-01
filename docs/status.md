@@ -8,22 +8,21 @@
 | # | Tarefa | Situação |
 |---|---|---|
 | 0 | Arquivos de memória (`CLAUDE.md`, `decisions.md`, `status.md`) | feito |
-| 1 | Scaffold, `.env.example`, Supabase local | feito — **falta CI (GitHub Actions) e `docs/runbook.md`** |
+| 1 | Scaffold, `.env.example`, Supabase local | feito (+ CI no GitHub Actions, `docs/runbook.md`) |
 | 2 | Tokens de design + layout base | feito |
-| 3 | Migrations mínimas + RLS | feito (+ `access_log` append-only antecipado) — **falta `docs/data-model.md`** |
+| 3 | Migrations mínimas + RLS | feito (+ `access_log` append-only antecipado, `docs/data-model.md`) |
 | 4 | Seed fictício | feito (25 áreas, 2 usuários locais) |
 | 5 | Login + script de admin | feito |
 | 6 | Importadores Land Bank e KML/KMZ | feito (com `--dry-run`) |
 | 7 | Listagem com filtros + mapa | feito |
-| 8 | Dossiê cego + PDF | feito — **falta esconder controles +/− do mapa na impressão** |
+| 8 | Dossiê cego + PDF | feito (controles do mapa ocultos na impressão) |
 | 9 | Testes | feito: pgTAP 20, Vitest 65, Playwright 9 |
-| 10 | Deploy | a fazer (aguarda contas Supabase/Cloudflare) |
+| 10 | Deploy | preparado (`wrangler.jsonc`, `npm run deploy`, seeds separados) — **aguarda acessos** |
 
-**Última sessão (2026-09-29):** tudo commitado no branch `fase-0`, sem remoto ainda.
-**Próximo passo:** CI + runbook + data-model → conectar repositório GitHub → deploy.
-
-Decisões técnicas a registrar em `decisions.md` na próxima sessão: D010 mapa via OpenFreeMap
-(gratuito, dados OSM, uso comercial ok); D011 filtro da lista no cliente (reavaliar acima de ~2 mil áreas).
+**Última sessão (2026-10-01):** repositório conectado (`origin` = GitHub, branches `main` e `fase-0`),
+CI, runbook, data-model, D010–D013. Testes locais verdes (pgTAP 20, Vitest 65, Playwright 9).
+**Próximo passo:** `supabase link` + `db push` + seed de demo na nuvem → usuários dos sócios →
+`npm run deploy` → aceite no celular → PR `fase-0` → `main` (OK do Arthur/Felipe).
 
 **Aceite (revisado, sem modo demo):** no celular, filtro e abro o dossiê cego de ≥10 áreas; teste automatizado prova que usuário sem permissão não lê `opportunity_sensitive` por chamada direta à API.
 
@@ -32,9 +31,8 @@ Decisões técnicas a registrar em `decisions.md` na próxima sessão: D010 mapa
 | Pendência | Trava | Dono |
 |---|---|---|
 | Planilha Land Bank, MD de exemplo, KML, formulário, fotos | Dados reais na Fase 0 (não bloqueia código) | Fábio |
-| URL do repositório GitHub | Push/CI | Arthur |
-| Conta Supabase + Cloudflare | Deploy da Fase 0 | Arthur |
-| Docker Desktop rodando na máquina de dev | Banco local e testes de banco | Arthur |
+| Acesso CLI: `supabase login` + ref/senha do banco; `wrangler login` | Deploy da Fase 0 | Arthur |
+| Trocar a secret key do Supabase (foi colada no chat) | Segurança | Arthur |
 | E-mails dos sócios para usuários da demo | Deploy | Arthur |
 | Escalonamento e base de cálculo da comissão | Fase 6 | Fábio + jurídico |
 | Estrutura societária/CNPJ | Lançamento | Fábio + advogado |
