@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  push:
+    branches: [main, 'fase-*']
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Lint, tipos, testes de unidade e build: rápido, sem banco.
+  app:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+        env:
+          # Build de verificação apenas; o deploy usa os valores reais do Cloudflare Pages.
+          VITE_SUPABASE_URL: http://127.0.0.1:54321
+          VITE_SUPABASE_ANON_KEY: ci-placeholder
+
+  # Banco local (Docker do runner): migrations + seed + pgTAP + E2E.
+  db-e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Sobe Supabase local
+        run: npx supabase start -x studio,imgproxy,inbucket,edge-runtime,logflare,vector,supavisor
+      - name: Variáveis do frontend a partir do Supabase local
+        run: |
+          npx supabase status -o env > supabase.env
+          set -a; . ./supabase.env; set +a
+          echo "VITE_SUPABASE_URL=$API_URL" > .env.local
+          echo "VITE_SUPABASE_ANON_KEY=$ANON_KEY" >> .env.local
+      - run: npm run test:db
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: |
+            playwright-report
+            test-results
+          retention-days: 7

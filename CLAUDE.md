@@ -31,7 +31,7 @@ Deploy: Supabase Cloud (free, região São Paulo) + Cloudflare Pages (free).
 ```bash
 npm install                    # dependências
 npx supabase start             # banco local (requer Docker Desktop rodando)
-npx supabase db reset          # recria banco local: migrations + seed.sql
+npx supabase db reset          # recria banco local: migrations + supabase/seeds/*.sql
 npm run dev                    # frontend em http://localhost:5173
 npm run lint                   # ESLint
 npm run typecheck              # tsc --noEmit

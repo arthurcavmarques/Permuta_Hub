@@ -65,6 +65,8 @@ test('PDF do dossiê não contém dado sensível mesmo depois de revelado', asyn
   await expect(page.getByText('MAT-001-FICT')).toBeVisible();
   await page.emulateMedia({ media: 'print' });
   await expect(page.getByText('MAT-001-FICT')).toBeHidden();
+  // controles +/− do mapa não vão para o papel
+  await expect(page.locator('.maplibregl-ctrl-top-right')).toBeHidden();
   await page.waitForTimeout(1500);
   await page.screenshot({ path: 'test-results/shots/dossie-impressao.png', fullPage: true });
   await page.pdf({ path: 'test-results/shots/dossie-MD-001.pdf', format: 'A4', printBackground: true });

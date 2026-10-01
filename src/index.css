@@ -36,4 +36,9 @@
   .print-avoid-break {
     break-inside: avoid;
   }
+  /* Controles do mapa (+/−) não fazem sentido no papel; a atribuição OSM permanece. */
+  .maplibregl-ctrl-top-right,
+  .maplibregl-ctrl-top-left {
+    display: none !important;
+  }
 }
