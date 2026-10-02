@@ -16,5 +16,5 @@
     "types": ["node", "vitest/globals"],
     "paths": { "@/*": ["./src/*"] }
   },
-  "include": ["vite.config.ts", "tailwind.config.ts", "playwright.config.ts", "scripts", "e2e"]
+  "include": ["vite.config.ts", "tailwind.config.ts", "playwright.config.ts", "playwright.prod.config.ts", "scripts", "e2e", "e2e-prod"]
 }
