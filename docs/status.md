@@ -33,8 +33,8 @@ Corrigido: worker do MapLibre não ia para o build de produção (mapa em branco
 |---|---|---|
 | Planilha Land Bank, MD de exemplo, KML, formulário, fotos | Dados reais na Fase 0 (não bloqueia código) | Fábio |
 | Site URL no Supabase = URL do Worker | Links de e-mail do Auth | Arthur |
-| Trocar senha do banco novo; apagar projeto antigo `nmgsbudv…` (EUA) e sua secret key | Segurança | Arthur |
-| Liberar espaço no disco C: (0 GB; Docker ocupa 31 GB) | Dev local | Arthur |
+| Trocar senha do banco novo (projeto antigo `nmgsbudv…` já apagado) | Segurança — lembrar na próxima sessão | Arthur |
+| Liberar espaço no disco C: (0 GB; Docker ocupa 31 GB) ou migrar de máquina | Dev local | Arthur |
 | Escalonamento e base de cálculo da comissão | Fase 6 | Fábio + jurídico |
 | Estrutura societária/CNPJ | Lançamento | Fábio + advogado |
 | Minutas dos termos | Fase 5 | Advogado |
