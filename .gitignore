@@ -1,0 +1,15 @@
+node_modules
+dist
+*.local
+.env
+.env.*
+!.env.example
+coverage
+playwright-report
+test-results
+# Dados reais nunca entram no repositório (regra: só dados fictícios)
+data/
+supabase/.branches
+supabase/.temp
+import-reports/
+.wrangler

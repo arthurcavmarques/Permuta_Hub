@@ -1,0 +1,10 @@
+LAND BANK - CONTROLE (DADOS FICTÍCIOS PARA TESTE);;;;;;;;;
+;;;;;;;;;
+Nº MD;Área (m²);Tipo de Terreno;Bairro;Status da Negociação;Empresas;Andamento comercial;Contatos;Proprietário;Coluna Estranha
+42;12.400,50;Urbano;Petrópolis;Em negociação;"Construtora Alfa; Incorporadora Beta / construtora alfa";Proposta enviada em ago;(51) 90000-0001;Fulano Fictício;x
+MD-43;1,5 ha;Gleba;  Sarandi ;disponível;;;;;
+md 42;999;Urbano;Duplicado;Novo;;;;;
+;500;Urbano;Sem MD;Novo;;;;;
+;;;;;;;;;
+44;abc;Urbano;Cristal;status maluco;;;;;
+45;3200;Urbano;Cristal;status maluco;Delta;;;;
