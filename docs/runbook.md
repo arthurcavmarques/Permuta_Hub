@@ -72,27 +72,28 @@ só promove (senha mantida). Não há auto-cadastro (D005).
 | Peça | Onde |
 |---|---|
 | Banco/Auth/Storage | Supabase Cloud, região São Paulo (sa-east-1), plano free |
-| Frontend | Cloudflare Workers (assets estáticos), worker `holy-leaf-c5c0` (D012) |
+| Frontend | Cloudflare Workers (assets estáticos), worker `permutahub` (D012) |
 
 ### 6.1 Banco (Supabase Cloud)
 
-Uma vez por máquina:
-```bash
-npx supabase login                                      # abre o navegador
-npx supabase link --project-ref <ref-do-projeto>        # pede a senha do banco
-```
+Projeto: `eiclbivogbpmllobawzd` (sa-east-1). A conexão direta (`db.<ref>.supabase.co`) só tem
+IPv6; use o **Session pooler** (IPv4), em *Connect → Session pooler*:
+`postgresql://postgres.<ref>:<senha>@aws-0-sa-east-1.pooler.supabase.com:5432/postgres`.
+Guarde a URL numa variável de ambiente do terminal (`DB_URL`), nunca em arquivo versionado.
 
 A cada mudança de schema:
 ```bash
-npx supabase db push --dry-run    # confere o que vai aplicar
-npx supabase db push              # aplica migrations pendentes (NÃO aplica seeds)
+npx supabase db push --dry-run --db-url "$DB_URL"   # confere o que vai aplicar
+npx supabase db push --db-url "$DB_URL"             # aplica migrations pendentes (NÃO aplica seeds)
 ```
 
 Dados fictícios de demonstração (apenas uma vez, banco vazio). **Nunca** aplicar
-`01_local_users.sql` na nuvem (senhas conhecidas):
-```bash
-npx supabase db query --linked -f supabase/seeds/02_demo_data.sql
-```
+`01_local_users.sql` na nuvem (senhas conhecidas). `db query` aceita **um comando por vez**:
+rode cada `insert` do `02_demo_data.sql` separadamente com
+`npx supabase db query --db-url "$DB_URL" -f <arquivo-com-um-comando.sql>`.
+
+Usuários na nuvem: `npm run create-admin` com `SUPABASE_URL` e a secret key do projeto
+(seção 5).
 
 Configurações do Auth no painel do Supabase (não versionadas):
 - *Authentication → Sign In / Providers*: **desligar** "Allow new users to sign up" (D005).
@@ -106,7 +107,7 @@ VITE_SUPABASE_URL=https://<ref-do-projeto>.supabase.co
 VITE_SUPABASE_ANON_KEY=sb_publishable_...
 ```
 
-Uma vez por máquina: `npx wrangler login`. Depois, a cada publicação:
+Uma vez por máquina: `npx wrangler login` (ou `CLOUDFLARE_API_TOKEN` + `CLOUDFLARE_ACCOUNT_ID`). Depois, a cada publicação:
 ```bash
 npm run deploy                     # build (tsc + vite) + wrangler deploy
 ```
@@ -125,3 +126,11 @@ npm run deploy                     # build (tsc + vite) + wrangler deploy
   `.env.production.local` (deploy).
 - Login falha na nuvem com usuário recém-criado: confira se foi criado com `create-admin`
   apontando para a URL da nuvem, não a local.
+
+## 8. Aceite/smoke em produção
+
+```bash
+ACEITE_EMAIL=... ACEITE_PASSWORD=... npx playwright test -c playwright.prod.config.ts
+```
+Celular emulado contra a URL de produção (`PROD_URL` para outra): login, filtro e 10 dossiês
+cegos. Só leitura — não revela dado sensível (o que gravaria no `access_log`).

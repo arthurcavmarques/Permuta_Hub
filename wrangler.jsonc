@@ -1,7 +1,7 @@
 // Cloudflare Workers (assets estáticos) servindo o build do Vite como SPA. Ver D012 e docs/runbook.md.
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "holy-leaf-c5c0",
+  "name": "permutahub",
   "compatibility_date": "2026-10-01",
   "assets": {
     "directory": "./dist",

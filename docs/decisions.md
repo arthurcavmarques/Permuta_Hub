@@ -54,7 +54,7 @@ Formato: data · decisão · contexto · alternativas · motivo.
 - **Reavaliar** acima de ~2 mil áreas (filtro no servidor + paginação). `max_rows` da API = 1000.
 
 ### D012 · 2026-10-01 · Frontend em Cloudflare Workers (assets estáticos) em vez de Pages
-- **Contexto:** o Arthur criou o worker `holy-leaf-c5c0`; a Cloudflare recomenda Workers com
+- **Contexto:** os nomes `holy-leaf-c5c0`/`wandering-credit-edbc` não existiam na conta; worker criado como `permutahub`. A Cloudflare recomenda Workers com
   assets estáticos para sites novos (Pages segue funcionando, sem novidades).
 - **Motivo:** mesmo custo (free), deploy por `wrangler deploy`, SPA nativo
   (`not_found_handling`). Ajusta D002 só no produto da Cloudflare.

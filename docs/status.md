@@ -16,13 +16,14 @@
 | 6 | Importadores Land Bank e KML/KMZ | feito (com `--dry-run`) |
 | 7 | Listagem com filtros + mapa | feito |
 | 8 | Dossiê cego + PDF | feito (controles do mapa ocultos na impressão) |
-| 9 | Testes | feito: pgTAP 20, Vitest 65, Playwright 9 |
-| 10 | Deploy | preparado (`wrangler.jsonc`, `npm run deploy`, seeds separados) — **aguarda acessos** |
+| 9 | Testes | feito: pgTAP 20, Vitest 65, Playwright 9 (+ aceite em produção) |
+| 10 | Deploy | feito: https://permutahub.permutahub.workers.dev (Supabase `eiclbivogbpmllobawzd`, sa-east-1) |
 
-**Última sessão (2026-10-01):** repositório conectado (`origin` = GitHub, branches `main` e `fase-0`),
-CI, runbook, data-model, D010–D013. Testes locais verdes (pgTAP 20, Vitest 65, Playwright 9).
-**Próximo passo:** `supabase link` + `db push` + seed de demo na nuvem → usuários dos sócios →
-`npm run deploy` → aceite no celular → PR `fase-0` → `main` (OK do Arthur/Felipe).
+**Última sessão (2026-10-02):** deploy da Fase 0 no ar. Banco na nuvem com migrations, 25 áreas
+fictícias e 3 admins da plataforma (Arthur, Matheos, Felipe). Aceite em produção aprovado
+(`e2e-prod/aceite.spec.ts`, celular: filtro + 10 dossiês cegos; RLS verificado na API).
+Corrigido: worker do MapLibre não ia para o build de produção (mapa em branco).
+**Próximo passo:** Site URL no Supabase → higiene de segredos → PR `fase-0` → `main` (OK do Arthur/Felipe).
 
 **Aceite (revisado, sem modo demo):** no celular, filtro e abro o dossiê cego de ≥10 áreas; teste automatizado prova que usuário sem permissão não lê `opportunity_sensitive` por chamada direta à API.
 
@@ -31,9 +32,9 @@ CI, runbook, data-model, D010–D013. Testes locais verdes (pgTAP 20, Vitest 65,
 | Pendência | Trava | Dono |
 |---|---|---|
 | Planilha Land Bank, MD de exemplo, KML, formulário, fotos | Dados reais na Fase 0 (não bloqueia código) | Fábio |
-| Acesso CLI: `supabase login` + ref/senha do banco; `wrangler login` | Deploy da Fase 0 | Arthur |
-| Trocar a secret key do Supabase (foi colada no chat) | Segurança | Arthur |
-| E-mails dos sócios para usuários da demo | Deploy | Arthur |
+| Site URL no Supabase = URL do Worker | Links de e-mail do Auth | Arthur |
+| Trocar senha do banco novo; apagar projeto antigo `nmgsbudv…` (EUA) e sua secret key | Segurança | Arthur |
+| Liberar espaço no disco C: (0 GB; Docker ocupa 31 GB) | Dev local | Arthur |
 | Escalonamento e base de cálculo da comissão | Fase 6 | Fábio + jurídico |
 | Estrutura societária/CNPJ | Lançamento | Fábio + advogado |
 | Minutas dos termos | Fase 5 | Advogado |

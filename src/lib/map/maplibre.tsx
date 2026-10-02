@@ -1,6 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
-import { Map as MLMap, NavigationControl, type GeoJSONSource, type MapOptions } from 'maplibre-gl';
+import {
+  Map as MLMap,
+  NavigationControl,
+  setWorkerUrl,
+  type GeoJSONSource,
+  type MapOptions,
+} from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
+// O MapLibre acha o worker relativo ao próprio arquivo; no bundle de produção esse arquivo não
+// existe e o mapa fica em branco. O Vite empacota o worker e devolve a URL final.
+import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url';
 import { cn } from '@/lib/utils';
 import { boundsOf, circlePolygon } from './geo';
 import type { ApproxLocationMapProps, OpportunitiesMapProps } from './types';
@@ -8,6 +17,8 @@ import type { ApproxLocationMapProps, OpportunitiesMapProps } from './types';
 // OpenFreeMap: dados OSM, gratuito, sem chave, uso comercial permitido (D010).
 const STYLE_URL = 'https://tiles.openfreemap.org/styles/positron';
 const PORTO_ALEGRE: [number, number] = [-51.2177, -30.0346];
+
+setWorkerUrl(workerUrl);
 
 /** Lê a cor do token CSS: o mapa segue o design system sem cor hard-coded. */
 function token(name: string): string {
