@@ -23,7 +23,21 @@
 fictícias e 3 admins da plataforma (Arthur, Matheos, Felipe). Aceite em produção aprovado
 (`e2e-prod/aceite.spec.ts`, celular: filtro + 10 dossiês cegos; RLS verificado na API).
 Corrigido: worker do MapLibre não ia para o build de produção (mapa em branco).
-**Próximo passo:** Site URL no Supabase → higiene de segredos → PR `fase-0` → `main` (OK do Arthur/Felipe).
+**Sessão 2026-10-05 (planejamento, sem código):** Fase 0 mergeada em `main` (PR #1). Arthur trocou a senha
+do banco de produção e configurou a Site URL no Supabase.
+**Próximo passo:** migrar o ambiente de dev para a máquina do Arthur → Arthur autoriza a Fase 1 em nova sessão
+→ responder perguntas (a) e (b) abaixo → criar branch `fase-1` (estimativa 50–60 h).
+
+### Perguntas abertas para iniciar a Fase 1
+| # | Pergunta | Sugestão padrão |
+|---|---|---|
+| a | Corretor e comprador se cadastram sozinhos ou só por convite? | Auto-cadastro com conta **pendente** até aprovação do admin; só corretor aprovado cadastra área |
+| b | Há domínio próprio para e-mail (convites)? | Dev com e-mail simulado local; provedor gratuito (ex.: Resend) quando houver domínio |
+
+### Marcos de demonstração (referência)
+- **Fase 0:** vitrine (catálogo, mapa, dossiê cego) — já demonstrável.
+- **Fase 2:** captação → dossiê sem planilha (para captadores/corretores).
+- **Fase 4:** match → envio → "tenho interesse" rastreado — demo completa para compradores/investidores.
 
 **Aceite (revisado, sem modo demo):** no celular, filtro e abro o dossiê cego de ≥10 áreas; teste automatizado prova que usuário sem permissão não lê `opportunity_sensitive` por chamada direta à API.
 
@@ -31,10 +45,10 @@ Corrigido: worker do MapLibre não ia para o build de produção (mapa em branco
 
 | Pendência | Trava | Dono |
 |---|---|---|
-| Planilha Land Bank, MD de exemplo, KML, formulário, fotos | Dados reais na Fase 0 (não bloqueia código) | Fábio |
-| Site URL no Supabase = URL do Worker | Links de e-mail do Auth | Arthur |
-| Trocar senha do banco novo (projeto antigo `nmgsbudv…` já apagado) | Segurança — lembrar na próxima sessão | Arthur |
-| Liberar espaço no disco C: (0 GB; Docker ocupa 31 GB) ou migrar de máquina | Dev local | Arthur |
+| Planilha Land Bank, MD de exemplo, KML, formulário, fotos (Arthur vai cobrar) | Dados reais na demo (não bloqueia a Fase 1) | Fábio |
+| Migrar ambiente de dev para a máquina do Arthur (máquina atual: 5,6 GB livres no C:) | Dev local (Docker/pgTAP da Fase 1) | Arthur (com o Claude) |
+| Supabase free: pausa após ~7 dias sem uso e sem backup restaurável — decidir Pro ou backup próprio | Antes de entrar dado real | Arthur + Felipe |
+| Templates de WhatsApp exigem aprovação da Meta (dias a semanas) — iniciar cedo | Fase 4 | Matheos / Zentri |
 | Escalonamento e base de cálculo da comissão | Fase 6 | Fábio + jurídico |
 | Estrutura societária/CNPJ | Lançamento | Fábio + advogado |
 | Minutas dos termos | Fase 5 | Advogado |
