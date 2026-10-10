@@ -65,6 +65,38 @@ Formato: data · decisão · contexto · alternativas · motivo.
   (fictício) pode ir para a nuvem da demo. `db push` nunca aplica seeds.
 - **Motivo:** demo na nuvem com dados fictícios sem expor usuários de senha conhecida.
 
+### D014 · 2026-10-10 · Cadastro: auto-cadastro com aprovação (pergunta a da Fase 1, aprovada pelo Arthur)
+- Corretor e comprador se cadastram sozinhos; a conta nasce `pending` (`profiles.account_status`) e só vale
+  depois que um admin da plataforma aprova. Conta pendente vê apenas o próprio perfil.
+- Corretor: além da conta aprovada, precisa de CRECI `approved` (`brokers.verification_status`) para cadastrar área.
+  Regra aplicada na RLS de `opportunities` (insert), não só na tela.
+- Comprador no cadastro cria a própria organização e vira `admin` dela; demais pessoas da empresa entram por convite.
+- **Alternativa descartada:** só convite (trava o crescimento da rede; o ativo é a rede).
+
+### D015 · 2026-10-10 · E-mail sem domínio próprio (pergunta b da Fase 1)
+- Mensagens saem por uma **caixa de saída** (`email_outbox`, gravada no banco) e um `EmailProvider` trocável.
+  Local: Mailpit do Supabase (`http://127.0.0.1:54324`) para os e-mails do Auth; `LogEmailProvider` para os demais.
+- Convites geram **link copiável** (token aleatório, só o hash fica no banco, expira em 7 dias): o admin pode
+  mandar por WhatsApp enquanto não há domínio. Resend (free) entra quando houver domínio.
+- Auth em produção usa o SMTP padrão do Supabase (limite baixo por hora) — suficiente para poucos usuários.
+
+### D016 · 2026-10-10 · `distributions` append-only: fatos iniciais + estado derivado
+- `distributions` guarda só o que é verdade no momento do envio (quem, o quê, canal, origem, snapshot da mensagem).
+  Tudo que muda (enviado, entregue, aberto, interesse…) é linha nova em `distribution_events`.
+  O estado atual é a view `distribution_status` (último evento). Sem colunas `sent_at`/`opened_at` mutáveis.
+- Resolve o item "append-only × colunas de estado" que estava em aberto.
+
+### D017 · 2026-10-10 · Imutabilidade forte: encadeamento de hashes
+- `access_log`, `distributions` e `distribution_events` ganham `prev_hash`/`row_hash` (SHA-256 do conteúdo + hash
+  anterior), calculados por trigger no INSERT. `verify_hash_chain(tabela)` aponta a primeira linha adulterada.
+- Não impede o dono do banco de reescrever tudo, mas torna a adulteração **detectável**; exportação periódica
+  do último hash para fora do banco (ex.: e-mail aos sócios) fica para a Fase 8.
+
+### D018 · 2026-10-10 · Histórico legado "oferecida para" → `distributions` (executa D006)
+- Cada nome de empresa em `opportunities.extra.legacy_offered_to` vira (ou reaproveita, por nome normalizado)
+  uma organização e uma `distribution` com `source = 'legacy'`, sem canal/entrega. Função idempotente
+  `import_legacy_distributions()`, chamada pela migration e pelo importador.
+
 ## Em aberto
 
 | Tema | Dono | Prazo |
@@ -72,6 +104,5 @@ Formato: data · decisão · contexto · alternativas · motivo.
 | Planilha Land Bank, MD de exemplo, KML, formulário, fotos | Fábio | assim que possível |
 | Base legal LGPD para contatos legados (proprietários/compradores sem consentimento) | Jurídico | antes da Fase 4 |
 | Provedor de WhatsApp (API oficial paga × infra Zentri) | Matheos / Zentri | Fase 4 |
-| Imutabilidade forte (encadeamento de hashes + exportação) além de trigger | Time técnico | Fase 1 |
-| `distributions` append-only × colunas de estado: proposta = fatos iniciais + estado derivado de `distribution_events` | Time técnico | Fase 1 |
+| Exportar o último hash da cadeia para fora do banco (complemento de D017) | Time técnico | Fase 8 |
 | Definição geográfica de "região" para o score de proximidade | Fábio + técnico | Fase 3 |
