@@ -30,3 +30,11 @@ export const Label = forwardRef<
   />
 ));
 Label.displayName = 'Label';
+
+export const Textarea = forwardRef<
+  HTMLTextAreaElement,
+  React.TextareaHTMLAttributes<HTMLTextAreaElement>
+>(({ className, ...props }, ref) => (
+  <textarea ref={ref} className={cn(fieldBase, 'h-auto min-h-20 py-2', className)} {...props} />
+));
+Textarea.displayName = 'Textarea';

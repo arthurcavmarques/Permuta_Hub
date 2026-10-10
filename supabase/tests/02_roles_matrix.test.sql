@@ -2,7 +2,7 @@
 -- Independente dos seeds: cria os próprios usuários, organizações e áreas.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(68);
+select plan(69);
 
 -- ---------------------------------------------------------------------------
 -- Cenário
@@ -69,7 +69,8 @@ select throws_ok($$ select 1 from public.distributions $$, '42501', null, 'anon:
 select throws_ok($$ select 1 from public.contact_consents $$, '42501', null, 'anon: sem consentimentos');
 select throws_ok($$ select 1 from public.invitations $$, '42501', null, 'anon: sem convites');
 select throws_ok($$ select public.create_my_organization('X', 'other') $$, '42501', null, 'anon: não cria organização');
-select lives_ok($$ select * from public.get_invitation_preview('token-inexistente') $$, 'anon: prévia de convite disponível');
+select lives_ok($$ select * from public.get_invitation_preview('token-inexistente') $$,'anon: prévia de convite disponível');
+select is((select count(*)::int from public.consent_texts), 3, 'anon: lê só os textos de consentimento ativos (cadastro)');
 
 -- ---------------------------------------------------------------- conta pendente
 reset role; set local role authenticated;
@@ -186,7 +187,8 @@ select is((select count(*)::int from public.organizations), 1, 'outra organizaç
 select pg_temp.as_user('a0000000-0000-0000-0000-000000000001');
 select ok((select count(*) from public.admin_list_users()) >= 7, 'curadoria: lista usuários com e-mail');
 select lives_ok($$ select public.review_broker('a0000000-0000-0000-0000-000000000004', true) $$, 'curadoria: aprova CRECI');
-select is((select count(*)::int from public.email_outbox where template_key = 'creci_approved'), 1,
+select is((select count(*)::int from public.email_outbox where template_key = 'creci_approved'
+                     and payload ->> 'user_id' = 'a0000000-0000-0000-0000-000000000004'), 1,
   'aprovação de CRECI enfileira e-mail ao corretor');
 select throws_ok($$ select public.review_broker('a0000000-0000-0000-0000-000000000003', false) $$, '22023', null,
   'curadoria: rejeição exige motivo');

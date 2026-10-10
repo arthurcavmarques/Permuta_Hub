@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
+import { Link, Navigate, useLocation } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -83,6 +83,12 @@ export function LoginPage() {
           <Button type="submit" className="w-full" size="lg" disabled={isSubmitting}>
             {isSubmitting ? t.auth.submitting : t.auth.submit}
           </Button>
+          <p className="text-center text-sm text-muted">
+            {t.auth.noAccount}{' '}
+            <Link to="/cadastro" className="text-action hover:underline">
+              {t.auth.createAccount}
+            </Link>
+          </p>
         </form>
       </div>
     </div>

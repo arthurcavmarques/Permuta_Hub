@@ -21,3 +21,16 @@ export function RequireAuth({ children }: { children: ReactNode }) {
     return <Navigate to="/entrar" replace state={{ from: location.pathname + location.search }} />;
   return <>{children}</>;
 }
+
+/** Conta pendente/rejeitada/suspensa só acessa "Minha conta" (D014). Banco aplica o mesmo via RLS. */
+export function RequireApproved({ children }: { children: ReactNode }) {
+  const { isApproved } = useAuth();
+  if (!isApproved) return <Navigate to="/conta" replace />;
+  return <>{children}</>;
+}
+
+export function RequirePlatformAdmin({ children }: { children: ReactNode }) {
+  const { isPlatformAdmin } = useAuth();
+  if (!isPlatformAdmin) return <Navigate to="/oportunidades" replace />;
+  return <>{children}</>;
+}

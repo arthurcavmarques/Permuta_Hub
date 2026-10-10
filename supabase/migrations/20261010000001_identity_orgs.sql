@@ -829,6 +829,8 @@ create policy brokers_admin_all on public.brokers for all to authenticated
 
 -- consent_texts: textos são públicos para logados (a pessoa precisa ler antes de aceitar).
 create policy consent_texts_select on public.consent_texts for select to authenticated using (true);
+-- Visitante lê o texto ATIVO no cadastro: o que ele vê é exatamente o que fica registrado.
+create policy consent_texts_select_active_anon on public.consent_texts for select to anon using (active);
 create policy consent_texts_admin_insert on public.consent_texts for insert to authenticated
   with check ((select public.is_admin()));
 create policy consent_texts_admin_update on public.consent_texts for update to authenticated
@@ -864,7 +866,7 @@ revoke update on public.invitations from authenticated;
 grant update (revoked_at) on public.invitations to authenticated;
 
 -- anon: nada de tabela; só a prévia de convite.
-revoke all on public.organization_members, public.brokers, public.consent_texts, public.contact_consents,
+revoke all on public.organization_members, public.brokers, public.contact_consents,
   public.email_outbox, public.invitations from anon;
 revoke all on public.current_contact_consents from anon;
 revoke update, delete, truncate on public.contact_consents from authenticated, service_role;
@@ -894,6 +896,8 @@ grant execute on function
   public.get_invitation_preview(text)
 to authenticated;
 grant execute on function public.get_invitation_preview(text) to anon;
+revoke all on public.consent_texts from anon;
+grant select on public.consent_texts to anon;
 -- Uso interno (funções da curadoria): fora do alcance do app.
 revoke execute on function public.enqueue_email(text, text, text, text, jsonb), public.user_email(uuid) from authenticated;
 
