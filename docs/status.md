@@ -1,6 +1,6 @@
 # Status
 
-**Fase atual:** 1 — Fundação (branch `fase-1`, aguardando revisão do Arthur/Felipe para merge e deploy)
+**Fase atual:** 1 — Fundação: **concluída, mergeada em `main` e em produção (2026-10-10)**. Próxima: Fase 2 (aguarda aprovação).
 **Estimativa:** 50–60 h. **Realizado:** uma sessão de ~1 h de relógio (2026-10-10) com o Claude; a
 estimativa em horas de trabalho humano não se compara bem com isso — usar só como ordem de grandeza.
 
@@ -50,8 +50,12 @@ Gerenciar, gere um convite e abra o link numa janela anônima.
 
 **Sessão 2026-10-10:** ambiente migrado para a máquina do Arthur (Git, Node 22, Docker, 54 GB livres);
 perguntas (a) e (b) respondidas (D014, D015); Fase 1 implementada no branch `fase-1`.
-**Próximo passo:** Arthur/Felipe revisam → OK para merge → deploy da Fase 1 em produção (runbook 6.1:
-`db push`, configurações do Auth no painel, `app_base_url`, `npm run deploy`) → aprovação da Fase 2.
+**Deploy 2026-10-10:** aprovado pelo Arthur; merge `dcf10bf` em `main`; backup prévio (dados + schema) em
+`import-reports/` (local, fora do git); migrations aplicadas; `app_base_url` = site; Auth com cadastro ligado e
+confirmação de e-mail desligada; frontend publicado. Verificado: 3 admins aprovados, 11 distribuições legadas,
+cadeias de hash íntegras, API anônima só lê textos de consentimento, cadastro carrega no celular.
+**Próximo passo:** trocar a senha do banco (exposta no chat) → sócios trocam as senhas temporárias em
+Minha conta → aprovação da Fase 2.
 
 ## Histórico — Fase 0 (concluída, mergeada em `main` no PR #1)
 Protótipo demonstrável no ar em https://permutahub.permutahub.workers.dev (Supabase `eiclbivogbpmllobawzd`,
@@ -78,8 +82,7 @@ sa-east-1): catálogo, mapa, dossiê cego, PDF, importadores. Aceite em produç�
 | Nome e identidade final | Fase 8 | Time + designer |
 | **Rotacionar a secret key do Supabase** (exposta no chat em 2026-10-06 para redefinir senhas) | Segurança — fazer já | Arthur |
 | Senhas temporárias dos 3 admins (2026-10-06): trocar em "Minha conta → Trocar senha" após o deploy da Fase 1 | Segurança | Sócios |
-| **Revisar o branch `fase-1` e autorizar merge + deploy** | Fase 1 em produção | Arthur + Felipe |
-| No deploy: ligar cadastro e desligar "Confirm email" no painel do Auth; atualizar `app_base_url` (runbook 6.1) | Cadastro em produção | Arthur (com o Claude) |
+| **Trocar a senha do banco de produção** (exposta no chat em 2026-10-10 para o deploy) e atualizar `.env.deploy` | Segurança — fazer já | Arthur |
 | Texto definitivo dos consentimentos (privacidade, WhatsApp, e-mail) — hoje minuta `2026-10-v1` | Coleta de consentimento válida | Advogado |
 | Domínio próprio (sócios não querem pagar por ora; site segue em `*.workers.dev`) | Não impede (convite por link, D015); necessário para e-mail de verdade, confirmação de e-mail e recuperação de senha | Sócios |
 
