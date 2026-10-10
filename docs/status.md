@@ -56,6 +56,9 @@ do banco de produção e configurou a Site URL no Supabase.
 | Provedor de WhatsApp, opt-in, templates | Fase 4 | Matheos / Zentri |
 | Assinatura eletrônica | Fase 5 | Time |
 | Nome e identidade final | Fase 8 | Time + designer |
+| **Rotacionar a secret key do Supabase** (exposta no chat em 2026-10-06 para redefinir senhas) | Segurança — fazer já | Arthur |
+| Senhas temporárias dos 3 admins (2026-10-06): trocar quando houver tela de troca de senha (incluir na Fase 1) | Segurança | Sócios |
+| Domínio próprio (sócios não querem pagar por ora; site segue em `*.workers.dev`) | Não impede; necessário para e-mail de convites (pergunta b) e lançamento | Sócios |
 
 ## DEPENDE DO JURÍDICO
 - Distribuição sem mandato (`allow_distribution_without_mandate`, padrão `false`).
