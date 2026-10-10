@@ -17,6 +17,7 @@
     "import:landbank": "tsx scripts/import-landbank.ts",
     "import:kml": "tsx scripts/import-kml.ts",
     "create-admin": "tsx scripts/create-admin.ts",
+    "outbox:send": "tsx scripts/send-outbox.ts",
     "deploy": "npm run build && wrangler deploy"
   },
   "dependencies": {
