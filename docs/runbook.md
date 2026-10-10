@@ -24,9 +24,22 @@ Crie os arquivos de ambiente a partir de `.env.example` (nunca commitar):
 npm run dev                     # http://localhost:5173
 ```
 
-Usuários locais (só existem no banco local, `supabase/seeds/01_local_users.sql`):
-- `admin@permutahub.local` / `admin-local-123` — admin da plataforma
-- `usuario@permutahub.local` / `usuario-local-123` — logado, sem permissão
+Usuários locais (só existem no banco local, `supabase/seeds/01_local_users.sql` e `03_local_scenario.sql`):
+- `admin@permutahub.local` / `admin-local-123` — admin da plataforma (curadoria)
+- `usuario@permutahub.local` / `usuario-local-123` — conta pendente
+- `corretor@permutahub.local` / `corretor-local-123` — corretor aprovado (CRECI verificado), responsável por MD-006 e MD-013
+- `corretor.pendente@permutahub.local` / `corretor-local-123` — conta aprovada, CRECI na fila
+- `comprador@permutahub.local` / `comprador-local-123` — admin da "Incorporadora Exemplo Beta"; recebeu MD-001, MD-003, MD-005
+- `colega@permutahub.local` / `colega-local-123` — membro da mesma incorporadora
+- `outro@permutahub.local` / `outro-local-123` — admin de outra organização, sem distribuições
+
+E-mails do Auth local (recuperação de senha etc.) caem no Mailpit: http://127.0.0.1:54324.
+Mudou `supabase/config.toml`? Reinicie: `npx supabase stop && npx supabase start` (dados preservados).
+
+Caixa de saída (convites, aprovações — D015):
+```bash
+npm run outbox:send             # provedor de integration_settings (padrão "log": só imprime)
+```
 
 Studio local: http://127.0.0.1:54323
 
@@ -65,7 +78,8 @@ npm run create-admin -- pessoa@empresa.com.br "senha-com-10+-caracteres" "Nome C
 ```
 
 Cria o usuário (e-mail já confirmado) e o inclui em `platform_admins`. Se o e-mail já existe,
-só promove (senha mantida). Não há auto-cadastro (D005).
+só promove (senha mantida). Corretores e compradores se cadastram em `/cadastro` e esperam a
+aprovação da curadoria (D014); colegas de uma organização entram por convite.
 
 ## 6. Produção (demo da Fase 0)
 
@@ -96,8 +110,26 @@ Usuários na nuvem: `npm run create-admin` com `SUPABASE_URL` e a secret key do 
 (seção 5).
 
 Configurações do Auth no painel do Supabase (não versionadas):
-- *Authentication → Sign In / Providers*: **desligar** "Allow new users to sign up" (D005).
+- *Authentication → Sign In / Providers*: **ligar** "Allow new users to sign up" (Fase 1, D014) e
+  **desligar** "Confirm email" (sem domínio/SMTP próprio o Supabase não entrega e-mail para
+  endereços de fora do time; a aprovação da curadoria compensa — D015).
 - *Authentication → URL Configuration*: Site URL = URL pública do frontend.
+- Depois do `db push` da Fase 1, apontar os links de e-mail para a produção:
+  `update platform_settings set value = '"https://permutahub.permutahub.workers.dev"' where key = 'app_base_url';`
+
+### 6.1.1 Reverter uma migration
+Scripts em `supabase/rollbacks/`, na ordem **inversa** (ex.: 000002 antes de 000001). Apagam dados
+das tabelas da migration — exporte antes. Arquivos de CRECI no Storage precisam ser removidos pela
+API antes de remover o bucket.
+```bash
+psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/rollbacks/20261010000002_distributions_append_only.down.sql
+psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/rollbacks/20261010000001_identity_orgs.down.sql
+```
+Local (sem psql instalado): `docker exec -i supabase_db_permutahub psql -v ON_ERROR_STOP=1 -U postgres -d postgres < arquivo.sql`.
+
+### 6.1.2 Integridade do registro de apresentações (D017)
+Na curadoria (SQL Editor ou `db query`): `select * from verify_hash_chain('distributions');`
+(também `distribution_events` e `access_log`). Sem linhas = íntegro.
 
 ### 6.2 Frontend (Cloudflare)
 
@@ -124,6 +156,8 @@ npm run deploy                     # build (tsc + vite) + wrangler deploy
 - `error during connect ... dockerDesktopLinuxEngine`: o Docker Desktop não está aberto.
 - Página em branco com erro "Defina VITE_SUPABASE_URL": falta `.env.local` (dev) ou
   `.env.production.local` (deploy).
+- Cadastro falha com "Signups not allowed": o Auth ainda está com cadastro desligado (local:
+  reinicie o Supabase; nuvem: painel, seção 6.1).
 - Login falha na nuvem com usuário recém-criado: confira se foi criado com `create-admin`
   apontando para a URL da nuvem, não a local.
 

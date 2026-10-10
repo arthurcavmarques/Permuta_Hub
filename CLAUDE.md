@@ -41,6 +41,7 @@ npm run test:e2e               # Playwright
 npm run import:landbank -- <arquivo.csv|xlsx>   # importa Land Bank
 npm run import:kml -- <arquivo.kml|kmz>         # importa geometrias
 npm run create-admin -- <email> <senha>         # cria admin da plataforma
+npm run outbox:send                            # envia email_outbox (provedor de integration_settings)
 npm run deploy                 # build + publica no Cloudflare (ver runbook)
 ```
 Detalhes em `docs/runbook.md`.

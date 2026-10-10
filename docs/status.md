@@ -1,52 +1,72 @@
 # Status
 
-**Fase atual:** 0 — Protótipo demonstrável (branch `fase-0`)
-**Estimativa:** 38–46 h (original 40–48 h; −2 h pela remoção do modo demo, D004)
+**Fase atual:** 1 — Fundação (branch `fase-1`, aguardando revisão do Arthur/Felipe para merge e deploy)
+**Estimativa:** 50–60 h. **Realizado:** uma sessão de ~1 h de relógio (2026-10-10) com o Claude; a
+estimativa em horas de trabalho humano não se compara bem com isso — usar só como ordem de grandeza.
 
-## Fase 0 — tarefas
+## Fase 1 — tarefas
 
 | # | Tarefa | Situação |
 |---|---|---|
-| 0 | Arquivos de memória (`CLAUDE.md`, `decisions.md`, `status.md`) | feito |
-| 1 | Scaffold, `.env.example`, Supabase local | feito (+ CI no GitHub Actions, `docs/runbook.md`) |
-| 2 | Tokens de design + layout base | feito |
-| 3 | Migrations mínimas + RLS | feito (+ `access_log` append-only antecipado, `docs/data-model.md`) |
-| 4 | Seed fictício | feito (25 áreas, 2 usuários locais) |
-| 5 | Login + script de admin | feito |
-| 6 | Importadores Land Bank e KML/KMZ | feito (com `--dry-run`) |
-| 7 | Listagem com filtros + mapa | feito |
-| 8 | Dossiê cego + PDF | feito (controles do mapa ocultos na impressão) |
-| 9 | Testes | feito: pgTAP 20, Vitest 65, Playwright 9 (+ aceite em produção) |
-| 10 | Deploy | feito: https://permutahub.permutahub.workers.dev (Supabase `eiclbivogbpmllobawzd`, sa-east-1) |
+| 1 | Auth completa, perfis, organizações, membros, convites | feito: auto-cadastro com aprovação (D014), convite por link (D015), troca de senha |
+| 2 | Papéis e RLS completa com funções auxiliares | feito: `is_approved`, `is_approved_broker`, `user_org_ids`, `is_org_admin`, `can_view_blind` ampliado, `has_valid_agreement` (placeholder Fase 5) |
+| 3 | Corretor com CRECI e fila de verificação | feito: upload no bucket privado, fila na curadoria, e-mail de aprovação/rejeição |
+| 4 | Comprador e organização; canal preferido; `contact_consents` | feito: consentimento versionado (texto, versão, hash, IP, user-agent, data) — append-only |
+| 5 | Painel admin base | feito: usuários, fila de CRECI, organizações, caixa de saída |
+| 6 | `access_log`, `distributions`, `distribution_events` append-only | feito: triggers + cadeia de hashes verificável (D016, D017); legado convertido (D018) |
+| 7 | Adapters com fakes e testes | feito: e-mail (log/fake/Resend), WhatsApp (log, opt-out), aceite (hash), CRECI (fila), cobrança (nenhuma) |
+| — | Migrations reversíveis | feito: `supabase/rollbacks/` testado (down → teste da Fase 0 → up sobre dados existentes) |
+| — | Testes | pgTAP 136 (20 + 69 + 47), Vitest 99, Playwright 15 (+1 pulado de propósito) |
 
-**Última sessão (2026-10-02):** deploy da Fase 0 no ar. Banco na nuvem com migrations, 25 áreas
-fictícias e 3 admins da plataforma (Arthur, Matheos, Felipe). Aceite em produção aprovado
-(`e2e-prod/aceite.spec.ts`, celular: filtro + 10 dossiês cegos; RLS verificado na API).
-Corrigido: worker do MapLibre não ia para o build de produção (mapa em branco).
-**Sessão 2026-10-05 (planejamento, sem código):** Fase 0 mergeada em `main` (PR #1). Arthur trocou a senha
-do banco de produção e configurou a Site URL no Supabase.
-**Próximo passo:** migrar o ambiente de dev para a máquina do Arthur → Arthur autoriza a Fase 1 em nova sessão
-→ responder perguntas (a) e (b) abaixo → criar branch `fase-1` (estimativa 50–60 h).
+**Aceite da Fase 1:** ✔ suíte de RLS prova, por perfil (anônimo, pendente, corretor aprovado, corretor
+sem CRECI, comprador admin, colega, outra organização, curadoria), o que lê e escreve
+(`supabase/tests/02_roles_matrix.test.sql`); ✔ UPDATE/DELETE/TRUNCATE nas tabelas append-only falham
+com `authenticated`, `service_role` e dono do banco (`03_append_only_chain.test.sql`);
+✔ corretor sem aprovação não cadastra área (pgTAP + E2E).
 
-### Perguntas abertas para iniciar a Fase 1
-| # | Pergunta | Sugestão padrão |
-|---|---|---|
-| a | Corretor e comprador se cadastram sozinhos ou só por convite? | Auto-cadastro com conta **pendente** até aprovação do admin; só corretor aprovado cadastra área |
-| b | Há domínio próprio para e-mail (convites)? | Dev com e-mail simulado local; provedor gratuito (ex.: Resend) quando houver domínio |
+**Como testar em 5 minutos (local):** `npx supabase db reset` → `npm run dev` →
+(1) em `/cadastro`, crie um corretor; veja "Conta em análise" e envie um CRECI;
+(2) entre como `admin@permutahub.local` / `admin-local-123` → Curadoria → aprove a conta e o CRECI;
+(3) volte como o corretor → "Cadastrar área";
+(4) entre como `comprador@permutahub.local` / `comprador-local-123`: vê só 3 áreas; em Minha conta →
+Gerenciar, gere um convite e abra o link numa janela anônima.
+
+**Ficou de fora (e por quê):**
+- Envio automático da caixa de saída (Edge Function + agendamento): sem domínio não há para onde
+  enviar; `npm run outbox:send` e a aba "Caixa de saída" cobrem por ora (D015).
+- "Esqueci a senha" na tela de login: sem SMTP próprio o e-mail não chega fora do time; a curadoria
+  redefine a senha.
+- Corretor preencher dado sensível (matrícula, proprietário) e editor completo do MD: Fase 2.
+- Admin da organização trocar o papel de um membro pela tela (o banco já permite): baixa prioridade.
+- Exportar/anonimizar dados de um titular (regra 7): sem tela ainda — proposta para a Fase 8.
+
+**Riscos novos:**
+- Sem confirmação de e-mail em produção (D015), alguém pode se cadastrar com e-mail alheio. Mitigação:
+  a conta só vale depois da aprovação manual; a curadoria deve conferir telefone/empresa.
+- Os textos de consentimento são minuta: consentimentos colhidos agora apontam para a versão
+  `2026-10-v1` (placeholder). Com o texto do advogado, publicar `v2` e pedir novo aceite.
+- O link de convite vale para o e-mail convidado; quem tiver acesso à caixa daquele e-mail entra
+  aprovado. Convites expiram em 7 dias e podem ser cancelados.
+
+**Sessão 2026-10-10:** ambiente migrado para a máquina do Arthur (Git, Node 22, Docker, 54 GB livres);
+perguntas (a) e (b) respondidas (D014, D015); Fase 1 implementada no branch `fase-1`.
+**Próximo passo:** Arthur/Felipe revisam → OK para merge → deploy da Fase 1 em produção (runbook 6.1:
+`db push`, configurações do Auth no painel, `app_base_url`, `npm run deploy`) → aprovação da Fase 2.
+
+## Histórico — Fase 0 (concluída, mergeada em `main` no PR #1)
+Protótipo demonstrável no ar em https://permutahub.permutahub.workers.dev (Supabase `eiclbivogbpmllobawzd`,
+sa-east-1): catálogo, mapa, dossiê cego, PDF, importadores. Aceite em produção aprovado em 2026-10-02.
 
 ### Marcos de demonstração (referência)
 - **Fase 0:** vitrine (catálogo, mapa, dossiê cego) — já demonstrável.
 - **Fase 2:** captação → dossiê sem planilha (para captadores/corretores).
 - **Fase 4:** match → envio → "tenho interesse" rastreado — demo completa para compradores/investidores.
 
-**Aceite (revisado, sem modo demo):** no celular, filtro e abro o dossiê cego de ≥10 áreas; teste automatizado prova que usuário sem permissão não lê `opportunity_sensitive` por chamada direta à API.
-
 ## Pendências humanas
 
 | Pendência | Trava | Dono |
 |---|---|---|
 | Planilha Land Bank, MD de exemplo, KML, formulário, fotos (Arthur vai cobrar) | Dados reais na demo (não bloqueia a Fase 1) | Fábio |
-| Migrar ambiente de dev para a máquina do Arthur (máquina atual: 5,6 GB livres no C:) | Dev local (Docker/pgTAP da Fase 1) | Arthur (com o Claude) |
 | Supabase free: pausa após ~7 dias sem uso e sem backup restaurável — decidir Pro ou backup próprio | Antes de entrar dado real | Arthur + Felipe |
 | Templates de WhatsApp exigem aprovação da Meta (dias a semanas) — iniciar cedo | Fase 4 | Matheos / Zentri |
 | Escalonamento e base de cálculo da comissão | Fase 6 | Fábio + jurídico |
@@ -57,8 +77,11 @@ do banco de produção e configurou a Site URL no Supabase.
 | Assinatura eletrônica | Fase 5 | Time |
 | Nome e identidade final | Fase 8 | Time + designer |
 | **Rotacionar a secret key do Supabase** (exposta no chat em 2026-10-06 para redefinir senhas) | Segurança — fazer já | Arthur |
-| Senhas temporárias dos 3 admins (2026-10-06): trocar quando houver tela de troca de senha (incluir na Fase 1) | Segurança | Sócios |
-| Domínio próprio (sócios não querem pagar por ora; site segue em `*.workers.dev`) | Não impede; necessário para e-mail de convites (pergunta b) e lançamento | Sócios |
+| Senhas temporárias dos 3 admins (2026-10-06): trocar em "Minha conta → Trocar senha" após o deploy da Fase 1 | Segurança | Sócios |
+| **Revisar o branch `fase-1` e autorizar merge + deploy** | Fase 1 em produção | Arthur + Felipe |
+| No deploy: ligar cadastro e desligar "Confirm email" no painel do Auth; atualizar `app_base_url` (runbook 6.1) | Cadastro em produção | Arthur (com o Claude) |
+| Texto definitivo dos consentimentos (privacidade, WhatsApp, e-mail) — hoje minuta `2026-10-v1` | Coleta de consentimento válida | Advogado |
+| Domínio próprio (sócios não querem pagar por ora; site segue em `*.workers.dev`) | Não impede (convite por link, D015); necessário para e-mail de verdade, confirmação de e-mail e recuperação de senha | Sócios |
 
 ## DEPENDE DO JURÍDICO
 - Distribuição sem mandato (`allow_distribution_without_mandate`, padrão `false`).
@@ -67,8 +90,9 @@ do banco de produção e configurou a Site URL no Supabase.
 - Redação dos termos (não-circunvenção, parceria, uso da plataforma).
 - Prazo de cauda (`default_tail_period_months`, padrão 24).
 - Base legal LGPD para importar contatos legados sem consentimento registrado.
+- Textos de consentimento (`consent_texts`, hoje minuta `2026-10-v1`).
 
 ## Riscos
 - Prazo: apresentação início de outubro; sem dados reais, a demo sai com dados fictícios.
 - Dossiê cego não garante anonimato (bairro + metragem + foto aérea identificam); fotos exigem curadoria manual.
-- Imutabilidade por trigger não resiste ao dono do banco (ver "Em aberto" em decisions.md).
+- Imutabilidade por trigger não resiste ao dono do banco; a cadeia de hashes (D017) torna a adulteração detectável, mas o último hash ainda não é exportado para fora do banco (Fase 8).

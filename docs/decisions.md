@@ -78,7 +78,10 @@ Formato: data · decisão · contexto · alternativas · motivo.
   Local: Mailpit do Supabase (`http://127.0.0.1:54324`) para os e-mails do Auth; `LogEmailProvider` para os demais.
 - Convites geram **link copiável** (token aleatório, só o hash fica no banco, expira em 7 dias): o admin pode
   mandar por WhatsApp enquanto não há domínio. Resend (free) entra quando houver domínio.
-- Auth em produção usa o SMTP padrão do Supabase (limite baixo por hora) — suficiente para poucos usuários.
+- Auth em produção: "Confirm email" **desligado** — o SMTP padrão do Supabase só entrega para endereços
+  do time. A aprovação manual da curadoria (D014) compensa a falta de verificação do e-mail.
+  Recuperação de senha por e-mail também não funciona fora do time: até haver domínio, a curadoria
+  redefine pelo painel/script. Religar a confirmação quando houver SMTP próprio.
 
 ### D016 · 2026-10-10 · `distributions` append-only: fatos iniciais + estado derivado
 - `distributions` guarda só o que é verdade no momento do envio (quem, o quê, canal, origem, snapshot da mensagem).
