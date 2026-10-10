@@ -2,16 +2,61 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from '
 import type { Session } from '@supabase/supabase-js';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from './supabase';
+import type { BrokerRecord, Membership, Profile } from './identity';
 
-interface AuthState {
+interface Me {
+  profile: Profile | null;
+  isPlatformAdmin: boolean;
+  broker: BrokerRecord | null;
+  memberships: Membership[];
+}
+
+interface AuthState extends Me {
   session: Session | null;
   loading: boolean;
-  /** Admin da PLATAFORMA (curadoria), não de organização (D007). */
-  isPlatformAdmin: boolean;
+  /** Conta aprovada pela curadoria (ou admin da plataforma). A regra real está no banco (is_approved). */
+  isApproved: boolean;
+  /** Conta aprovada + CRECI verificado: pode cadastrar áreas (is_approved_broker no banco). */
+  isApprovedBroker: boolean;
+  refresh: () => Promise<void>;
   signOut: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthState | null>(null);
+
+const EMPTY: Me = { profile: null, isPlatformAdmin: false, broker: null, memberships: [] };
+
+async function fetchMe(userId: string): Promise<Me> {
+  const [profile, admin, broker, memberships] = await Promise.all([
+    supabase
+      .from('profiles')
+      .select(
+        'user_id, full_name, phone, account_status, signup_kind, preferred_channel, whatsapp_opt_in, review_note',
+      )
+      .eq('user_id', userId)
+      .maybeSingle(),
+    supabase.from('platform_admins').select('user_id').eq('user_id', userId).maybeSingle(),
+    supabase
+      .from('brokers')
+      .select('creci_number, creci_state, verification_status, document_path, rejection_reason')
+      .eq('user_id', userId)
+      .maybeSingle(),
+    supabase
+      .from('organization_members')
+      .select('organization_id, role, organization:organizations(id, name, type, active)')
+      .eq('user_id', userId),
+  ]);
+  for (const r of [profile, admin, broker, memberships]) if (r.error) throw r.error;
+  return {
+    profile: profile.data as Profile | null,
+    isPlatformAdmin: !!admin.data,
+    broker: broker.data as BrokerRecord | null,
+    // Organização invisível (RLS) não deve virar linha quebrada na tela.
+    memberships: ((memberships.data ?? []) as unknown as Membership[]).filter(
+      (m) => m.organization,
+    ),
+  };
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
@@ -23,32 +68,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(data.session);
       setLoading(false);
     });
-    const { data } = supabase.auth.onAuthStateChange((_event, s) => {
+    const { data } = supabase.auth.onAuthStateChange((event, s) => {
       setSession(s);
-      queryClient.clear(); // troca de usuário não pode reaproveitar cache de outro
+      // Troca de usuário não pode reaproveitar cache de outro (renovação de token pode).
+      if (event !== 'TOKEN_REFRESHED' && event !== 'USER_UPDATED') queryClient.clear();
     });
     return () => data.subscription.unsubscribe();
   }, [queryClient]);
 
   const userId = session?.user.id;
-  const adminQuery = useQuery({
-    queryKey: ['platform-admin', userId],
+  const meQuery = useQuery({
+    queryKey: ['me', userId],
     enabled: !!userId,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('platform_admins')
-        .select('user_id')
-        .eq('user_id', userId!)
-        .maybeSingle();
-      if (error) throw error;
-      return !!data;
-    },
+    queryFn: () => fetchMe(userId!),
   });
 
+  const me = meQuery.data ?? EMPTY;
+  const isApproved = me.isPlatformAdmin || me.profile?.account_status === 'approved';
   const value: AuthState = {
+    ...me,
     session,
-    loading: loading || (!!userId && adminQuery.isLoading),
-    isPlatformAdmin: adminQuery.data ?? false,
+    loading: loading || (!!userId && meQuery.isLoading),
+    isApproved,
+    isApprovedBroker: isApproved && me.broker?.verification_status === 'approved',
+    refresh: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['me'] });
+    },
     signOut: async () => {
       await supabase.auth.signOut();
     },

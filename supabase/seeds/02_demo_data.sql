@@ -82,3 +82,6 @@ select
   jsonb_build_object('phone', '+55 51 90000-00' || substr(memorial_number, 4), 'email', 'proprietario' || substr(memorial_number, 4) || '@exemplo.invalid'),
   'Dado sensível fictício para testes de bloqueio.'
 from ins;
+
+-- Histórico "oferecida para" vira distributions legadas (D018). Idempotente.
+select public.import_legacy_distributions();
