@@ -20,6 +20,7 @@ Convenções: tabelas e colunas em inglês; todas com `id uuid`, `created_at`, `
 | `20261019000004_md_editor.sql` | Fase 2.3: editor do MD — termo-mestre no cadastro, geometria e dado sensível por RPC, fotos/documentos do corretor, autorização do proprietário |
 | `20261019000005_curation.sql` | Fase 2.4: curadoria — fila de leads e conversão, `opportunity_events`, publicável (regra 4), publicar, logs de acesso |
 | `20261019000006_registry.sql` | Fase 2.5: `registry_lookups`, CNPJ nas organizações (único), CRECI níveis B/C (D024, D025) |
+| `20261019000007_dossier_print.sql` | Fase 2.6: `log_dossier_print` — geração do PDF do dossiê no `access_log` |
 
 Reversão: `supabase/rollbacks/<migration>.down.sql` (rodar na ordem inversa; ver runbook).
 

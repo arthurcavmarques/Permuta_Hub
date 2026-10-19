@@ -18,6 +18,8 @@ import { Wordmark } from '@/app/AppShell';
 import { useBlindMedia, useBlindOpportunity } from './api';
 import { SensitivePanel } from './SensitivePanel';
 import { useCanEdit } from './editor/api';
+import { useAuth } from '@/lib/auth';
+import { supabase } from '@/lib/supabase';
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -48,6 +50,7 @@ export function DossierPage() {
   const { data: o, isLoading, isError } = useBlindOpportunity(id);
   const media = useBlindMedia(id);
   const canEdit = useCanEdit(id);
+  const { session } = useAuth();
 
   if (isLoading) return <FullPageMessage title={t.common.loading} />;
   if (isError || !o) return <FullPageMessage title={t.dossier.notFound} />;
@@ -73,7 +76,18 @@ export function DossierPage() {
               </Link>
             </Button>
           )}
-          <Button variant="secondary" size="sm" onClick={() => window.print()}>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={async () => {
+              // Registra quem gerou o PDF antes de abrir a impressão (falha no log não impede o PDF).
+              await supabase.rpc('log_dossier_print', { p_opportunity_id: id }).then(
+                () => undefined,
+                () => undefined,
+              );
+              window.print();
+            }}
+          >
             <FileDown className="h-4 w-4" />
             {t.dossier.printPdf}
           </Button>
@@ -221,6 +235,19 @@ export function DossierPage() {
         <footer className="mt-6 border-t border-border pt-4 text-xs text-muted">
           {PRODUCT_NAME} · {t.dossier.footer(formatDate(new Date()))}
         </footer>
+      </div>
+
+      {/* Rodapé que se repete em cada página do PDF: marca, MD e quem gerou (rastreabilidade). */}
+      <div
+        aria-hidden
+        data-testid="print-footer"
+        className="hidden print:fixed print:inset-x-0 print:bottom-0 print:flex print:items-center print:justify-between print:border-t print:border-accent print:bg-surface print:pt-1 print:text-[9px] print:text-muted"
+      >
+        <span className="font-semibold text-primary">{PRODUCT_NAME}</span>
+        <span>
+          {o.memorial_number} · {t.dossier.blindBadge}
+        </span>
+        <span>{t.dossier.printedFor(session?.user.email ?? '', formatDate(new Date()))}</span>
       </div>
     </article>
   );

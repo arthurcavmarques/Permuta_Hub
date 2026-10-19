@@ -347,6 +347,7 @@ export const t = {
         write_sensitive: 'Gravou dado restrito',
         write_geometry: 'Alterou localização exata',
         accept_agreement: 'Aceitou termo',
+        print_dossier: 'Gerou PDF do dossiê',
       },
     },
     brokerLeads: {
@@ -617,6 +618,7 @@ export const t = {
     negotiationModels: 'Modelos aceitos',
     askingValue: 'Valor pretendido',
     noPhotos: 'Nenhuma foto liberada para a versão cega.',
+    printedFor: (email: string, date: string) => `Gerado para ${email} em ${date}. Não repasse.`,
     footer: (date: string) =>
       `Documento confidencial gerado em ${date}. Versão cega: não contém matrícula, endereço exato nem dados do proprietário.`,
     notFound: 'Oportunidade não encontrada ou sem permissão de acesso.',

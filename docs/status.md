@@ -23,7 +23,7 @@ Perguntas sem resposta ("anote"). Ao abrir uma sessão, lembrar o Arthur destas 
 | 2.3 | Editor completo do MD + autorização do proprietário + termo-mestre e aceite por área | feito |
 | 2.4 | Fila de leads, pipeline, mandato/publicável, logs de acesso | feito |
 | 2.5 | CNPJ automático (BrasilAPI) + CRECI nível B/C | feito |
-| 2.6 | PDF do dossiê cego com marca | a fazer |
+| 2.6 | PDF do dossiê cego com marca | feito |
 
 **Sessão 2026-10-19:** validação dos requisitos do Continuidade 2.0 com a Bruna (PO). Respostas do Arthur:
 "bug crítico" descartado; vídeos de 14–15/10 ignorados; Supabase segue no plano gratuito (D022); `.claude/` e o
