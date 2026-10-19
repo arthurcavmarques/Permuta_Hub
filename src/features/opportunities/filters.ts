@@ -16,7 +16,12 @@ export const emptyFilters: OpportunityFilters = {
   status: '',
 };
 
-const fold = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+const fold = (s: string) =>
+  s
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
 
 /**
  * Filtro no cliente: a lista já vem restrita pela view cega (só o que o usuário pode ver) e o

@@ -4,6 +4,10 @@ begin;
 create extension if not exists pgtap with schema extensions;
 select plan(31);
 
+-- Limites conhecidos (o seed local afrouxa para os E2E).
+update public.platform_settings set value = '5' where key = 'lead_rate_limit_per_hour';
+update public.platform_settings set value = '3' where key = 'lead_rate_limit_per_contact_day';
+
 insert into auth.users (id, email, aud, role, raw_user_meta_data) values
   ('a2000000-0000-0000-0000-000000000001', 'curadoria@t22.invalid', 'authenticated', 'authenticated', '{}'),
   ('a2000000-0000-0000-0000-000000000002', 'dona@t22.invalid', 'authenticated', 'authenticated', '{"full_name":"Dona Terra","signup_kind":"owner"}'),

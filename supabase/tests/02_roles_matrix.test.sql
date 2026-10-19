@@ -47,6 +47,12 @@ insert into public.distributions (opportunity_id, recipient_org_id, recipient_us
 insert into public.distribution_events (distribution_id, event)
 select id, 'sent' from public.distributions where idempotency_key = 'k1';
 
+-- Fase 2: corretor aceita o termo-mestre antes de cadastrar área.
+select public.accept_agreement('broker_partnership')
+  from (select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000003","role":"authenticated"}', true)) x;
+select public.accept_agreement('broker_partnership')
+  from (select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000004","role":"authenticated"}', true)) x;
+
 -- Atalho para trocar de usuário.
 create function pg_temp.as_user(p_id text) returns void language sql as $$
   select set_config('request.jwt.claims', json_build_object('sub', p_id, 'role', 'authenticated')::text, true);

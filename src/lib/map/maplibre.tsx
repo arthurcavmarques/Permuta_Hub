@@ -12,7 +12,13 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url';
 import { cn } from '@/lib/utils';
 import { boundsOf, circlePolygon } from './geo';
-import type { ApproxLocationMapProps, OpportunitiesMapProps } from './types';
+import type { Geometry } from 'geojson';
+import type {
+  ApproxLocationMapProps,
+  GeometryEditorMapProps,
+  LngLat,
+  OpportunitiesMapProps,
+} from './types';
 
 // OpenFreeMap: dados OSM, gratuito, sem chave, uso comercial permitido (D010).
 const STYLE_URL = 'https://tiles.openfreemap.org/styles/positron';
@@ -183,6 +189,129 @@ export function ApproxLocationMap({ lat, lng, radiusM, className }: ApproxLocati
       className={cn('h-full w-full', className)}
       role="img"
       aria-label="Localização aproximada"
+    />
+  );
+}
+
+function coordsOf(g: Geometry | null): LngLat[] {
+  if (!g) return [];
+  if (g.type === 'Point') return [g.coordinates as LngLat];
+  if (g.type === 'Polygon') return g.coordinates.flat() as LngLat[];
+  if (g.type === 'MultiPolygon') return g.coordinates.flat(2) as LngLat[];
+  return [];
+}
+
+export function GeometryEditorMap({
+  geometry,
+  draft,
+  onMapClick,
+  className,
+}: GeometryEditorMapProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<MLMap | null>(null);
+  const [ready, setReady] = useState(false);
+  const onClickRef = useRef(onMapClick);
+  useEffect(() => {
+    onClickRef.current = onMapClick;
+  });
+
+  useEffect(() => {
+    const map = createMap(containerRef.current!, { cooperativeGestures: true });
+    mapRef.current = map;
+    map.on('load', () => {
+      const empty = { type: 'FeatureCollection' as const, features: [] };
+      map.addSource('saved', { type: 'geojson', data: empty });
+      map.addSource('draft', { type: 'geojson', data: empty });
+      map.addLayer({
+        id: 'saved-fill',
+        type: 'fill',
+        source: 'saved',
+        filter: ['!=', ['geometry-type'], 'Point'],
+        paint: { 'fill-color': token('primary'), 'fill-opacity': 0.2 },
+      });
+      map.addLayer({
+        id: 'saved-line',
+        type: 'line',
+        source: 'saved',
+        filter: ['!=', ['geometry-type'], 'Point'],
+        paint: { 'line-color': token('primary'), 'line-width': 2 },
+      });
+      map.addLayer({
+        id: 'saved-point',
+        type: 'circle',
+        source: 'saved',
+        filter: ['==', ['geometry-type'], 'Point'],
+        paint: { 'circle-radius': 7, 'circle-color': token('primary') },
+      });
+      map.addLayer({
+        id: 'draft-line',
+        type: 'line',
+        source: 'draft',
+        paint: { 'line-color': token('action'), 'line-width': 2, 'line-dasharray': [2, 1] },
+      });
+      map.addLayer({
+        id: 'draft-vertex',
+        type: 'circle',
+        source: 'draft',
+        filter: ['==', ['geometry-type'], 'Point'],
+        paint: {
+          'circle-radius': 5,
+          'circle-color': token('action'),
+          'circle-stroke-width': 2,
+          'circle-stroke-color': token('surface'),
+        },
+      });
+      map.on('click', (e) => onClickRef.current?.([e.lngLat.lng, e.lngLat.lat]));
+      setReady(true);
+    });
+    return () => {
+      setReady(false);
+      map.remove();
+    };
+  }, []);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !ready) return;
+    (map.getSource('saved') as GeoJSONSource).setData({
+      type: 'FeatureCollection',
+      features: geometry ? [{ type: 'Feature', geometry, properties: {} }] : [],
+    });
+    const b = boundsOf(coordsOf(geometry).map(([lng, lat]) => ({ lng, lat })));
+    if (b) map.fitBounds(b, { padding: 48, maxZoom: 17, duration: 0 });
+  }, [geometry, ready]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !ready) return;
+    const ring = draft.length >= 3 ? [...draft, draft[0]] : draft;
+    (map.getSource('draft') as GeoJSONSource).setData({
+      type: 'FeatureCollection',
+      features: [
+        ...draft.map((c) => ({
+          type: 'Feature' as const,
+          geometry: { type: 'Point' as const, coordinates: c },
+          properties: {},
+        })),
+        ...(ring.length >= 2
+          ? [
+              {
+                type: 'Feature' as const,
+                geometry: { type: 'LineString' as const, coordinates: ring },
+                properties: {},
+              },
+            ]
+          : []),
+      ],
+    });
+  }, [draft, ready]);
+
+  return (
+    <div
+      ref={containerRef}
+      className={cn('h-full w-full', onMapClick && '[&_canvas]:cursor-crosshair', className)}
+      role="region"
+      aria-label="Mapa da localização exata"
     />
   );
 }

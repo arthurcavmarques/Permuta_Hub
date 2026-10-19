@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, FileDown } from 'lucide-react';
+import { ArrowLeft, FileDown, Pencil } from 'lucide-react';
 import { t } from '@/i18n/pt-BR';
 import { PRODUCT_NAME } from '@/config/product';
 import {
@@ -17,6 +17,7 @@ import { FullPageMessage } from '@/app/guards';
 import { Wordmark } from '@/app/AppShell';
 import { useBlindMedia, useBlindOpportunity } from './api';
 import { SensitivePanel } from './SensitivePanel';
+import { useCanEdit } from './editor/api';
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -46,6 +47,7 @@ export function DossierPage() {
   const { id = '' } = useParams();
   const { data: o, isLoading, isError } = useBlindOpportunity(id);
   const media = useBlindMedia(id);
+  const canEdit = useCanEdit(id);
 
   if (isLoading) return <FullPageMessage title={t.common.loading} />;
   if (isError || !o) return <FullPageMessage title={t.dossier.notFound} />;
@@ -62,10 +64,20 @@ export function DossierPage() {
             {t.common.back}
           </Link>
         </Button>
-        <Button variant="secondary" size="sm" onClick={() => window.print()}>
-          <FileDown className="h-4 w-4" />
-          {t.dossier.printPdf}
-        </Button>
+        <div className="flex gap-2">
+          {canEdit.data && (
+            <Button asChild variant="secondary" size="sm">
+              <Link to={`/areas/${id}/editar`}>
+                <Pencil className="h-4 w-4" />
+                {t.editor.edit}
+              </Link>
+            </Button>
+          )}
+          <Button variant="secondary" size="sm" onClick={() => window.print()}>
+            <FileDown className="h-4 w-4" />
+            {t.dossier.printPdf}
+          </Button>
+        </div>
       </div>
 
       {/* Cabeçalho: dados-chave primeiro (o WhatsApp traz o comprador direto para cá). */}

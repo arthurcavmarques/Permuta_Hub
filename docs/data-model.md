@@ -17,6 +17,7 @@ Convenções: tabelas e colunas em inglês; todas com `id uuid`, `created_at`, `
 | `20261019000001_agreements.sql` | Fase 2.1: termos versionados, aceites e revogações append-only, regra nova do dado sensível (D020) |
 | `20261019000002_owner_kind.sql` | Fase 2.2: valor `owner` em `signup_kind` (migration própria: enum novo não se usa na mesma transação) |
 | `20261019000003_owner_leads.sql` | Fase 2.2: porta do proprietário — `owner_leads`, formulário público, "minhas áreas" agregada (D021) |
+| `20261019000004_md_editor.sql` | Fase 2.3: editor do MD — termo-mestre no cadastro, geometria e dado sensível por RPC, fotos/documentos do corretor, autorização do proprietário |
 
 Reversão: `supabase/rollbacks/<migration>.down.sql` (rodar na ordem inversa; ver runbook).
 
@@ -237,3 +238,27 @@ o próprio termo enquanto isso. `owner_my_areas()` devolve as áreas dele com st
 responsável" (oportunidade sem responsável), nome/telefone do corretor responsável e **contagens agregadas** de
 organizações que receberam e que demonstraram interesse — nunca quem (regra 3). O vínculo área ↔ proprietário é
 pelo lead (`converted_opportunity_id`); `opportunities` não ganhou coluna de proprietário.
+
+### Fase 2 — porta do corretor e editor do MD (bloco 2.3)
+**Quem edita** (`can_edit_opportunity`): curadoria sempre; corretor aprovado **responsável** enquanto a área está
+`captured`/`qualifying`. Corretor só cadastra área depois de aceitar o **termo-mestre** (`broker_partnership`,
+exigido na RLS de insert de `opportunities`).
+
+**Localização exata:** escrita só por `set_opportunity_geometry_geojson` (polígono, multipolígono ou ponto; Z
+descartado; geometria inválida corrigida; fora da caixa do Brasil recusada — pega lat/lng invertidos) e lida pelo
+editor com `get_opportunity_geometry`. Gravação registrada no `access_log` (`write_geometry`).
+**Dado sensível:** `upsert_opportunity_sensitive` (mesma permissão; `write_sensitive` no log). A tabela continua
+sem nenhum privilégio para o app.
+
+**Fotos:** corretor responsável insere/edita/remove `opportunity_media` da própria área e os objetos em
+`opportunity-media/<opportunity_id>/…` (`storage_opportunity_id(name)` lê a pasta). `is_blind_safe` marcado pelo
+corretor é **proposta**: só chega a comprador depois que a curadoria publica. Bucket limitado a imagens de até 15 MB.
+
+**`opportunity_documents`** (opportunity_id, kind `owner_authorization|registry|technical|other`, sensitivity
+`blind|restricted`, storage_path, file_name, uploaded_by, `review_status` `pending|accepted|rejected`,
+review_note, reviewed_by/at) — bucket privado `opportunity-documents` (PDF/imagem até 20 MB). Autorização do
+proprietário é sempre `restricted`; o corretor não altera a revisão (trigger), só a curadoria por
+`review_owner_authorization`. **RLS:** curadoria tudo; corretor responsável lê, envia e apaga (não apaga a já
+conferida); destinatário lê documento `blind` com o dossiê e `restricted` só com acesso ao dado sensível;
+**autorização do proprietário nunca** chega ao comprador. Objetos do Storage seguem a linha da tabela.
+Substitui a tabela `owner_authorizations` prevista no plano (mesma informação, uma tabela só).

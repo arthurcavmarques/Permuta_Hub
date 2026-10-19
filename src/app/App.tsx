@@ -7,6 +7,7 @@ import { RequireApproved, RequireAuth, RequirePlatformAdmin } from '@/app/guards
 import { OpportunitiesPage } from '@/features/opportunities/OpportunitiesPage';
 import { DossierPage } from '@/features/opportunities/DossierPage';
 import { NewOpportunityPage } from '@/features/opportunities/NewOpportunityPage';
+import { EditorPage } from '@/features/opportunities/editor/EditorPage';
 import { SignupPage } from '@/features/account/SignupPage';
 import { AccountPage } from '@/features/account/AccountPage';
 import { OrganizationPage } from '@/features/organizations/OrganizationPage';
@@ -66,6 +67,14 @@ export function App() {
           element={
             <RequireApproved>
               <NewOpportunityPage />
+            </RequireApproved>
+          }
+        />
+        <Route
+          path="/areas/:id/editar"
+          element={
+            <RequireApproved>
+              <EditorPage />
             </RequireApproved>
           }
         />

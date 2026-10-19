@@ -80,3 +80,9 @@ select d.id, e.event::public.distribution_event_type, now() - e.ago
 -- Fase 2: E2E repetidos no mesmo IP local não podem esbarrar no anti-spam do formulário de captação.
 update public.platform_settings set value = '1000'
  where key in ('lead_rate_limit_per_hour', 'lead_rate_limit_per_contact_day');
+
+-- Fase 2: corretor aprovado já aceitou o termo-mestre (pode cadastrar área).
+select public.accept_agreement('broker_partnership')
+  from (select set_config('request.jwt.claims',
+          '{"sub":"00000000-0000-0000-0000-00000000b001","role":"authenticated"}', true)) x;
+select set_config('request.jwt.claims', '', false);

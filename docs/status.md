@@ -20,7 +20,7 @@ Perguntas sem resposta ("anote"). Ao abrir uma sessão, lembrar o Arthur destas 
 |---|---|---|
 | 2.1 | Termos versionados editáveis + `agreements` append-only + aceite do comprador antes do dado sensível | feito (e9b5836) |
 | 2.2 | Proprietário com login, formulário público, "minhas áreas" sem identificar comprador, área retida | feito |
-| 2.3 | Editor completo do MD + autorização do proprietário + termo-mestre e aceite por área | a fazer |
+| 2.3 | Editor completo do MD + autorização do proprietário + termo-mestre e aceite por área | feito |
 | 2.4 | Fila de leads, pipeline, mandato/publicável, logs de acesso | a fazer |
 | 2.5 | CNPJ automático (BrasilAPI) + CRECI nível B/C | a fazer |
 | 2.6 | PDF do dossiê cego com marca | a fazer |

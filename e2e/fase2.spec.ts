@@ -125,3 +125,70 @@ test('proprietário cria conta, aceita o termo, cadastra área e acompanha', asy
   await expect(area).toContainText('Ipanema, Porto Alegre');
   await expect(area).toContainText('Recebida');
 });
+
+// PNG 1x1 válido (foto fictícia).
+const PNG = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+  'base64',
+);
+const PDF = Buffer.from('%PDF-1.4\n% documento ficticio de teste\n');
+
+test('corretor monta o dossiê completo no editor e a versão cega reflete', async ({
+  page,
+}, info) => {
+  await login(page, { email: 'corretor@permutahub.local', password: 'corretor-local-123' });
+  await page.getByRole('link', { name: 'Cadastrar área' }).click();
+  // Termo-mestre já aceito no seed: vai direto ao formulário.
+  await page.getByLabel('Cidade').fill('Porto Alegre');
+  await page.getByLabel('Bairro').fill(`Bairro Editor ${info.project.name}`);
+  await page.getByLabel('Área (m²)').fill('3210');
+  await page.getByRole('button', { name: 'Cadastrar área' }).click();
+  await expect(page).toHaveURL(/\/editar$/);
+
+  // Dados do dossiê
+  await page.getByLabel('Zoneamento').fill('Mista E2E');
+  await page.getByLabel('Coef. de aproveitamento').fill('2,4');
+  await page.getByRole('button', { name: 'Salvar', exact: true }).click();
+  await expect(page.getByText('Salvo.').first()).toBeVisible();
+
+  // Localização exata pelo KML do Google Earth
+  await page.getByTestId('kml-input').setInputFiles('scripts/fixtures/exemplo.kml');
+  await expect(page.getByRole('button', { name: 'Remover localização' })).toBeVisible();
+
+  // Foto liberada para a versão cega
+  await page.getByTestId('media-input').setInputFiles({
+    name: 'foto.png',
+    mimeType: 'image/png',
+    buffer: PNG,
+  });
+  const media = page.getByTestId('editor-media');
+  await expect(media).toHaveCount(1);
+  await media.getByLabel('Pode ir para a versão cega').check();
+  await expect(media.getByLabel('Pode ir para a versão cega')).toBeChecked();
+
+  // Dado sensível
+  await page.getByRole('button', { name: 'Abrir dados restritos' }).click();
+  await page.getByLabel('Matrícula').fill('MAT-E2E-EDITOR');
+  await page.getByRole('button', { name: 'Salvar dados restritos' }).click();
+  await expect(page.getByText('Salvo.').last()).toBeVisible();
+
+  // Autorização do proprietário + aceite da área
+  await page.getByTestId('authorization-input').setInputFiles({
+    name: 'autorizacao.pdf',
+    mimeType: 'application/pdf',
+    buffer: PDF,
+  });
+  await expect(page.getByText('Aguardando curadoria')).toBeVisible();
+  const term = page.getByTestId('agreement-broker_area_authorization');
+  await term.getByLabel('Li o texto acima e aceito o termo.').check();
+  await term.getByRole('button', { name: 'Aceitar termo' }).click();
+  await expect(page.getByText('Você já autorizou a divulgação desta área.')).toBeVisible();
+
+  // Versão cega: dados novos, foto liberada, nada restrito exposto.
+  await page.getByRole('link', { name: 'Ver versão cega' }).click();
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('3.200 m²');
+  await expect(page.getByText('Mista E2E').first()).toBeVisible();
+  await expect(page.locator('figure img')).toHaveCount(1);
+  await expect(page.getByText('MAT-E2E-EDITOR')).toHaveCount(0);
+  await expect(page.getByRole('link', { name: 'Editar área' })).toBeVisible();
+});
