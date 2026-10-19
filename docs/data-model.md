@@ -18,6 +18,7 @@ Convenções: tabelas e colunas em inglês; todas com `id uuid`, `created_at`, `
 | `20261019000002_owner_kind.sql` | Fase 2.2: valor `owner` em `signup_kind` (migration própria: enum novo não se usa na mesma transação) |
 | `20261019000003_owner_leads.sql` | Fase 2.2: porta do proprietário — `owner_leads`, formulário público, "minhas áreas" agregada (D021) |
 | `20261019000004_md_editor.sql` | Fase 2.3: editor do MD — termo-mestre no cadastro, geometria e dado sensível por RPC, fotos/documentos do corretor, autorização do proprietário |
+| `20261019000005_curation.sql` | Fase 2.4: curadoria — fila de leads e conversão, `opportunity_events`, publicável (regra 4), publicar, logs de acesso |
 
 Reversão: `supabase/rollbacks/<migration>.down.sql` (rodar na ordem inversa; ver runbook).
 
@@ -262,3 +263,23 @@ proprietário é sempre `restricted`; o corretor não altera a revisão (trigger
 conferida); destinatário lê documento `blind` com o dossiê e `restricted` só com acesso ao dado sensível;
 **autorização do proprietário nunca** chega ao comprador. Objetos do Storage seguem a linha da tabela.
 Substitui a tabela `owner_authorizations` prevista no plano (mesma informação, uma tabela só).
+
+### Fase 2 — curadoria (bloco 2.4)
+**`opportunity_events`** — histórico **append-only** da área: `created`, `status`, `mandate`, `responsible`,
+`published`, `unpublished`, `note`, com de/para, nota e autor. Gravado por trigger em `opportunities` (a nota vem
+de `app.event_note`, preenchida pelas RPCs) e por `add_opportunity_note`. **RLS:** curadoria e corretor
+responsável leem.
+
+**Publicável:** `publish_blockers_of(linha)` devolve códigos do que falta (a tela traduz): campos mínimos de
+`platform_settings.publishable_required_fields` (proposta, **DEPENDE DO FÁBIO**), responsável (regra 3 — sem ele a
+área está "aguardando corretor responsável"), CRECI do responsável verificado, aceite de 1 clique do corretor na
+área, autorização do proprietário conferida e mandato (regra 4: só exclusivo/não exclusivo, salvo
+`allow_distribution_without_mandate`; "em obtenção" não publica). `opportunity_publish_blockers(id)` é a versão
+para a tela. Trigger `opportunities_publish_guard`: pelo app, a área só entra em qualificada/distribuição/negociação
+ou ganha `published_at` sem pendências; responsável precisa ser corretor verificado.
+
+**RPCs da curadoria:** `publish_opportunity` (qualificada + `published_at`), `curate_opportunity` (status, mandato,
+responsável, despublicar, com nota; qualificar só por "publicar"), `curate_lead` (em análise / pedir dados por
+e-mail / encaminhar a corretor verificado com aviso por e-mail / descartar com motivo), `convert_lead` (cria a área
+`qualifying` pré-preenchida, responsável = corretor que recebeu o lead, contato do proprietário vai para o dado
+sensível), `admin_list_brokers`, `admin_access_log` (filtros por data, ação e MD; nome/e-mail do ator).

@@ -28,7 +28,10 @@ export function AppShell() {
     links.push({ to: '/cadastrar-area', label: t.nav.newArea });
   } else if (isApproved)
     links.push({ to: '/oportunidades', label: t.nav.opportunities, end: true });
-  if (isApprovedBroker) links.push({ to: '/areas/nova', label: t.nav.newArea });
+  if (isApprovedBroker) {
+    links.push({ to: '/areas/nova', label: t.nav.newArea });
+    links.push({ to: '/areas/leads', label: t.nav.brokerLeads });
+  }
   if (isPlatformAdmin) links.push({ to: '/admin', label: t.nav.admin });
   links.push({ to: '/conta', label: t.nav.account });
   return (

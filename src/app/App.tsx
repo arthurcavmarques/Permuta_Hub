@@ -20,6 +20,13 @@ import {
   AdminUsersPage,
 } from '@/features/admin/AdminPages';
 import { AdminTermsPage } from '@/features/admin/TermsPage';
+import {
+  AdminAreaPage,
+  AdminAreasPage,
+  AdminLeadsPage,
+  AdminLogsPage,
+  BrokerLeadsPage,
+} from '@/features/admin/CurationPages';
 import { OwnerLeadPage } from '@/features/owner/OwnerLeadPage';
 import { OwnerAreasPage } from '@/features/owner/OwnerAreasPage';
 
@@ -71,6 +78,14 @@ export function App() {
           }
         />
         <Route
+          path="/areas/leads"
+          element={
+            <RequireApproved>
+              <BrokerLeadsPage />
+            </RequireApproved>
+          }
+        />
+        <Route
           path="/areas/:id/editar"
           element={
             <RequireApproved>
@@ -86,7 +101,11 @@ export function App() {
             </RequirePlatformAdmin>
           }
         >
-          <Route index element={<Navigate to="usuarios" replace />} />
+          <Route index element={<Navigate to="leads" replace />} />
+          <Route path="leads" element={<AdminLeadsPage />} />
+          <Route path="areas" element={<AdminAreasPage />} />
+          <Route path="areas/:id" element={<AdminAreaPage />} />
+          <Route path="logs" element={<AdminLogsPage />} />
           <Route path="usuarios" element={<AdminUsersPage />} />
           <Route path="creci" element={<AdminCreciPage />} />
           <Route path="organizacoes" element={<AdminOrganizationsPage />} />

@@ -68,6 +68,7 @@ test('corretor se cadastra, fica pendente, é aprovado pela curadoria e cadastra
   // 3. Curadoria aprova conta e CRECI; e-mails vão para a caixa de saída.
   await login(page, ADMIN);
   await page.getByRole('link', { name: 'Curadoria' }).click();
+  await page.getByRole('link', { name: 'Usuários' }).click();
   const row = page.getByTestId(`user-${email}`);
   await expect(row.getByText('Conta em análise')).toBeVisible();
   await row.getByRole('button', { name: 'Aprovar' }).click();

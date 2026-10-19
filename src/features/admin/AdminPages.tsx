@@ -35,10 +35,13 @@ const day = (iso: string) => formatDate(new Date(iso));
 
 export function AdminLayout() {
   const tabs = [
+    { to: '/admin/leads', label: t.admin.tabs.leads },
+    { to: '/admin/areas', label: t.admin.tabs.areas },
     { to: '/admin/usuarios', label: t.admin.tabs.users },
     { to: '/admin/creci', label: t.admin.tabs.creci },
     { to: '/admin/organizacoes', label: t.admin.tabs.organizations },
     { to: '/admin/termos', label: t.admin.tabs.terms },
+    { to: '/admin/logs', label: t.admin.tabs.logs },
     { to: '/admin/caixa-de-saida', label: t.admin.tabs.outbox },
   ];
   return (

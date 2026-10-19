@@ -192,3 +192,94 @@ test('corretor monta o dossiê completo no editor e a versão cega reflete', asy
   await expect(page.getByText('MAT-E2E-EDITOR')).toHaveCount(0);
   await expect(page.getByRole('link', { name: 'Editar área' })).toBeVisible();
 });
+
+test('lead vira dossiê publicável sem planilha; sem pendências resolvidas não publica', async ({
+  page,
+}, info) => {
+  test.skip(info.project.name !== 'desktop', 'fluxo longo da curadoria: só no desktop');
+  const place = `Bairro Lead ${Date.now()}`;
+
+  // 1. Visitante oferece a área.
+  await page.goto('/cadastrar-area');
+  await page.getByLabel('Sou o(a) proprietário(a)').check();
+  await page.getByRole('button', { name: 'Continuar' }).click();
+  await page.getByLabel('Cidade').fill('Porto Alegre');
+  await page.getByLabel('Bairro').fill(place);
+  await page.getByLabel('Onde fica a área?').fill('Rua fictícia, perto da praça');
+  await page.getByRole('button', { name: 'Continuar' }).click();
+  await page.getByLabel('Tamanho aproximado (m²)').fill('7000');
+  await page.getByLabel('Venda').check();
+  await page.getByRole('button', { name: 'Continuar' }).click();
+  await page.getByLabel('Nome completo').fill('Proprietária Lead');
+  await page.getByLabel('Celular (com DDD)').fill('(51) 96666-1111');
+  await page.getByLabel('Política de privacidade e termos de uso').check();
+  await page.getByRole('button', { name: 'Enviar área' }).click();
+  await expect(page.getByText('Recebemos sua área')).toBeVisible();
+
+  // 2. Curadoria converte o lead e vê o que falta.
+  await login(page, ADMIN);
+  await page.getByRole('link', { name: 'Curadoria' }).click();
+  const lead = page.getByTestId('lead').filter({ hasText: place });
+  await lead.getByRole('button', { name: 'Converter em oportunidade' }).click();
+  await expect(page).toHaveURL(/\/admin\/areas\//);
+  const blockers = page.getByTestId('blockers');
+  await expect(blockers).toContainText('Zoneamento');
+  await expect(blockers).toContainText('Corretor responsável');
+  await expect(blockers).toContainText('Autorização do proprietário');
+  await expect(page.getByRole('button', { name: 'Publicar' })).toBeDisabled();
+  const areaUrl = page.url();
+
+  // 3. Curadoria atribui o corretor e define o mandato (fica no histórico).
+  await page.getByLabel('Nota para a próxima mudança (opcional)').fill('Corretor da região');
+  await page.getByLabel('Responsável').selectOption({ label: 'Corretor Aprovado' });
+  await expect(page.getByTestId('timeline')).toContainText('Corretor da região');
+  await page.getByLabel('Mandato').selectOption({ label: 'Exclusividade' });
+  await expect(page.getByTestId('timeline')).toContainText('Mandato: Exclusividade');
+
+  // 4. Curadoria completa o dossiê no editor e confere a autorização.
+  await page.getByRole('link', { name: 'Editar área' }).click();
+  await page.getByLabel('Zoneamento').fill('Residencial E2E');
+  await page.getByRole('button', { name: 'Salvar', exact: true }).click();
+  await expect(page.getByText('Salvo.').first()).toBeVisible();
+  await page.getByTestId('kml-input').setInputFiles('scripts/fixtures/exemplo.kml');
+  await expect(page.getByRole('button', { name: 'Remover localização' })).toBeVisible();
+  await page
+    .getByTestId('media-input')
+    .setInputFiles({ name: 'f.png', mimeType: 'image/png', buffer: PNG });
+  await page.getByTestId('editor-media').getByLabel('Pode ir para a versão cega').check();
+  await page.getByTestId('authorization-input').setInputFiles({
+    name: 'autorizacao.pdf',
+    mimeType: 'application/pdf',
+    buffer: PDF,
+  });
+  await page.getByRole('button', { name: 'Conferir' }).click();
+  await expect(page.getByText('Conferida')).toBeVisible();
+
+  // 5. Ainda falta o aceite do corretor: não publica.
+  await page.goto(areaUrl);
+  await expect(page.getByTestId('blockers')).toHaveText(
+    /Aceite do corretor para divulgar esta área/,
+  );
+  await expect(page.getByTestId('blockers').locator('li')).toHaveCount(1);
+  await page.getByRole('button', { name: 'Sair' }).click();
+
+  // 6. Corretor responsável dá o aceite de 1 clique na área.
+  await login(page, { email: 'corretor@permutahub.local', password: 'corretor-local-123' });
+  await page.goto(areaUrl.replace('/admin/areas/', '/areas/') + '/editar');
+  const term = page.getByTestId('agreement-broker_area_authorization');
+  await term.getByLabel('Li o texto acima e aceito o termo.').check();
+  await term.getByRole('button', { name: 'Aceitar termo' }).click();
+  await expect(page.getByText('Você já autorizou a divulgação desta área.')).toBeVisible();
+  await page.getByRole('button', { name: 'Sair' }).click();
+
+  // 7. Curadoria publica; o log de acesso mostra as gravações.
+  await login(page, ADMIN);
+  await page.goto(areaUrl);
+  await expect(page.getByText('Nada pendente: a área pode ser publicada.')).toBeVisible();
+  await page.getByLabel('Nota da publicação (opcional)').fill('Pronta');
+  await page.getByRole('button', { name: 'Publicar' }).click();
+  await expect(page.getByText('Área publicada.')).toBeVisible();
+  await expect(page.getByTestId('timeline')).toContainText('Publicada');
+  await page.getByRole('link', { name: 'Logs de acesso' }).click();
+  await expect(page.getByTestId('access-log')).toContainText('Alterou localização exata');
+});
