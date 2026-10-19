@@ -86,3 +86,9 @@ select public.accept_agreement('broker_partnership')
   from (select set_config('request.jwt.claims',
           '{"sub":"00000000-0000-0000-0000-00000000b001","role":"authenticated"}', true)) x;
 select set_config('request.jwt.claims', '', false);
+
+-- Fase 2.5: consulta de CNPJ já em cache para um CNPJ fictício (E2E sem depender da BrasilAPI).
+insert into public.registry_lookups (kind, query, provider, result, response, response_hash) values
+  ('cnpj', '11222333000181', 'brasilapi', 'ok',
+   '{"cnpj":"11222333000181","legal_name":"EMPRESA FICTICIA DE TESTE LTDA","trade_name":"FICTICIA","registry_status":"ATIVA","is_active":true,"opened_at":"2010-01-01","legal_nature":"Sociedade Empresária Limitada","cnae_main":"4110700","cnae_main_description":"Incorporação de empreendimentos imobiliários","cnae_secondary":[],"address":"RUA FICTICIA, 1","city":"PORTO ALEGRE","state":"RS"}',
+   'seed');

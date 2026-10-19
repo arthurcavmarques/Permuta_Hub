@@ -16,7 +16,7 @@ interface AuthState extends Me {
   loading: boolean;
   /** Conta aprovada pela curadoria (ou admin da plataforma). A regra real está no banco (is_approved). */
   isApproved: boolean;
-  /** Conta aprovada + CRECI verificado: pode cadastrar áreas (is_approved_broker no banco). */
+  /** Conta aprovada + CRECI conferido e ativo: pode cadastrar áreas (is_approved_broker no banco). */
   isApprovedBroker: boolean;
   refresh: () => Promise<void>;
   signOut: () => Promise<void>;
@@ -38,7 +38,9 @@ async function fetchMe(userId: string): Promise<Me> {
     supabase.from('platform_admins').select('user_id').eq('user_id', userId).maybeSingle(),
     supabase
       .from('brokers')
-      .select('creci_number, creci_state, verification_status, document_path, rejection_reason')
+      .select(
+        'creci_number, creci_state, creci_type, creci_status, brokerage_org_id, next_review_at, verification_status, document_path, rejection_reason',
+      )
       .eq('user_id', userId)
       .maybeSingle(),
     supabase
@@ -90,7 +92,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     session,
     loading: loading || (!!userId && meQuery.isLoading),
     isApproved,
-    isApprovedBroker: isApproved && me.broker?.verification_status === 'approved',
+    isApprovedBroker:
+      isApproved &&
+      me.broker?.verification_status === 'approved' &&
+      me.broker.creci_status === 'active',
     refresh: async () => {
       await queryClient.invalidateQueries({ queryKey: ['me'] });
     },

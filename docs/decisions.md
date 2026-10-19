@@ -134,6 +134,27 @@ Formato: data · decisão · contexto · alternativas · motivo.
   `CLAUDE.md` + `docs/`. **Consequência:** quem clonar o repositório não recebe o plano; o Arthur repassa o arquivo
   ao Felipe por fora (ex.: pasta `Docs/` compartilhada).
 
+### D024 · 2026-10-19 · CNPJ: BrasilAPI pela Edge Function, ReceitaWS só como opção
+- **Verificado em 2026-10-19:** `https://brasilapi.com.br/api/cnpj/v1/{cnpj}` responde sem chave, com razão social,
+  situação, CNAE, endereço e quadro societário; projeto aberto (MIT, "custos devem ser zero"), **sem termos de uso
+  nem limite publicados**. Não há proibição de uso comercial, mas também não há garantia (serviço comunitário).
+- **Decisão:** primário = BrasilAPI, chamado só pelo servidor (`supabase/functions/registry-lookup`), com cache de
+  30 dias, timeout, uma retentativa e log append-only (`registry_lookups`). Quadro societário **não é guardado**
+  (nomes de pessoas; coleta mínima). ReceitaWS fica implementado mas **desligado** (`integration_settings`): o
+  plano gratuito tem limite baixo e os termos comerciais não foram conferidos.
+- **Falha da fonte nunca bloqueia:** CNPJ manual → `pending_manual` → curadoria confere (regra 11).
+- **Reavaliar** se o volume crescer: carga da base aberta da Receita (gratuita) em vez de API de terceiros.
+
+### D025 · 2026-10-19 · CRECI: verificação assistida (nível B) + reverificação (nível C); sem nível A
+- **Verificado em 2026-10-19:** o CRECI-RS tem consulta pública (`creci-rs.gov.br/siteNovo/pesquisaInscrito.php`),
+  formulário POST, sem API nem termos de uso publicados. Automatizar seria raspagem de fonte sem autorização →
+  vedado pela regra 12.
+- **Decisão:** a plataforma mostra o link oficial por UF (`platform_settings.creci_lookup_urls`), o corretor anexa
+  o comprovante, a curadoria registra situação (ativo/inativo/suspenso/cancelado) e o nome como consta; o sistema
+  compara com o perfil (sem acento/caixa) e sinaliza divergência. Só CRECI **ativo** conferido cadastra e publica.
+  Reverificação a cada 12 meses (configurável) aparece na fila. Prazo da curadoria (SLA) de 2 dias, sinalizado.
+- **Nível A** só com canal institucional (pendência L1 / pergunta 11 ao Fábio).
+
 ## Em aberto
 
 | Tema | Dono | Prazo |
@@ -145,4 +166,5 @@ Formato: data · decisão · contexto · alternativas · motivo.
 | Definição geográfica de "região" para o score de proximidade | Fábio + técnico | Fase 3 |
 | Perguntas de negócio da revisão 2026-10-19 (11 itens) | Fábio | ver `docs/perguntas à fabio.md` |
 | Canal institucional com o CRECI-RS para consulta automática | Arthur / Felipe / Fábio | antes de ligar o nível A |
-| Termos de uso comercial e limites da BrasilAPI (CNPJ) | Time técnico | antes de produção da Fase 2 |
+| BrasilAPI sem termos publicados (D024): reavaliar se o volume crescer | Time técnico | Fase 8 |
+| Reverificação automática mensal do CNPJ (exige pg_cron + pg_net) — hoje a curadoria reconsulta | Time técnico | Fase 8 |

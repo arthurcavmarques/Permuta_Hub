@@ -19,6 +19,7 @@ Convenções: tabelas e colunas em inglês; todas com `id uuid`, `created_at`, `
 | `20261019000003_owner_leads.sql` | Fase 2.2: porta do proprietário — `owner_leads`, formulário público, "minhas áreas" agregada (D021) |
 | `20261019000004_md_editor.sql` | Fase 2.3: editor do MD — termo-mestre no cadastro, geometria e dado sensível por RPC, fotos/documentos do corretor, autorização do proprietário |
 | `20261019000005_curation.sql` | Fase 2.4: curadoria — fila de leads e conversão, `opportunity_events`, publicável (regra 4), publicar, logs de acesso |
+| `20261019000006_registry.sql` | Fase 2.5: `registry_lookups`, CNPJ nas organizações (único), CRECI níveis B/C (D024, D025) |
 
 Reversão: `supabase/rollbacks/<migration>.down.sql` (rodar na ordem inversa; ver runbook).
 
@@ -283,3 +284,25 @@ responsável, despublicar, com nota; qualificar só por "publicar"), `curate_lea
 e-mail / encaminhar a corretor verificado com aviso por e-mail / descartar com motivo), `convert_lead` (cria a área
 `qualifying` pré-preenchida, responsável = corretor que recebeu o lead, contato do proprietário vai para o dado
 sensível), `admin_list_brokers`, `admin_access_log` (filtros por data, ação e MD; nome/e-mail do ator).
+
+### Fase 2 — verificação cadastral (bloco 2.5, D024, D025)
+**`registry_lookups`** — **append-only**: kind (`cnpj`/`creci`), consulta normalizada, quem pediu, provedor,
+resultado (`ok|not_found|invalid|error|timeout|cache`), resposta normalizada (só dados da empresa) e seu hash,
+latência, erro. Gravada **só** pela Edge Function `registry-lookup` (service_role tem apenas INSERT); cada
+tentativa vira uma linha; cache = linha `cache` apontando a original. **RLS:** quem pediu e a curadoria leem.
+
+**`organizations` (novas colunas):** `cnpj` (14 dígitos, **único**), razão social, nome fantasia, situação, data de
+abertura, natureza jurídica, CNAE principal/secundários, endereço, fonte, data, `registry_lookup_id`,
+`cnae_warning` (CNAE fora de `cnae_real_estate_prefixes`: só aviso), `verification_status`
+(`unverified|verified|pending_manual|pending_review`), nota. Pelo app, só a curadoria muda CNPJ e dados da Receita;
+`apply_organization_cnpj` aplica a partir de uma consulta **da própria pessoa**, recente e ok (ou manual →
+`pending_manual`); situação não ativa → `pending_review`. `create_my_organization` ganhou `p_cnpj_lookup_id`.
+`review_organization_registry` (curadoria). `is_valid_cnpj` repete no banco a regra de
+`supabase/functions/_shared/cnpj.ts`.
+
+**`brokers` (novas colunas):** `creci_type` (PF/PJ), `creci_status` (`active|inactive|suspended|cancelled|unknown`),
+`verification_method`, `source`, `verified_name`, `name_match_score` (pg_trgm + unaccent), `brokerage_org_id`
+(imobiliária da qual a pessoa é membro), `next_review_at`. `is_approved_broker()` agora exige **CRECI ativo**.
+`review_broker(usuário, aprova, motivo, situação, nome_conferido)`; situação diferente de ativa = não verificado.
+`admin_broker_queue` traz link oficial, SLA estourado e reverificação vencida. Aprovados da Fase 1 viraram
+`active` com reverificação em 12 meses; carga de backend já aprovada entra como `active`.

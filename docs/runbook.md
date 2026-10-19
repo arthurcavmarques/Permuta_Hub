@@ -129,7 +129,20 @@ Local (sem psql instalado): `docker exec -i supabase_db_permutahub psql -v ON_ER
 
 ### 6.1.2 Integridade do registro de apresentações (D017)
 Na curadoria (SQL Editor ou `db query`): `select * from verify_hash_chain('distributions');`
-(também `distribution_events` e `access_log`). Sem linhas = íntegro.
+(também `distribution_events`, `access_log`, `agreements` e `agreement_revocations`). Sem linhas = íntegro.
+
+### 6.1.3 Edge Functions (Fase 2.5)
+`registry-lookup` faz a consulta de CNPJ pelo servidor. Deploy a cada mudança em `supabase/functions/`:
+```bash
+npx supabase functions deploy registry-lookup --project-ref <ref>
+```
+Usa só `SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY`, que o Supabase injeta sozinho (nenhum segredo extra).
+Local, sobe junto com `npx supabase start`. Provedores em `integration_settings` (capability `cnpj`).
+Sem a função publicada, o cadastro segue funcionando: o CNPJ fica manual e vai para a curadoria (regra 11).
+
+### 6.1.4 Antes da importação real (Fase 2B, D022)
+Plano gratuito: rodar o backup próprio (dados + schema, fora do git, como no deploy da Fase 1) antes de
+qualquer carga real e usar o sistema ao menos uma vez por semana (pausa após ~7 dias sem uso).
 
 ### 6.2 Frontend (Cloudflare)
 

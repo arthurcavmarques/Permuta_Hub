@@ -77,6 +77,10 @@ test('corretor se cadastra, fica pendente, é aprovado pela curadoria e cadastra
   await page.getByRole('link', { name: 'Fila de CRECI' }).click();
   const creci = page.getByTestId(`creci-${email}`);
   await expect(creci.getByText('12345-F')).toBeVisible();
+  // Verificação assistida (Fase 2.5): link da consulta oficial e nome conferido.
+  await expect(creci.getByRole('link', { name: 'Consulta oficial CRECI-RS' })).toBeVisible();
+  await creci.getByLabel('Nome como consta na consulta oficial').fill('CORRETOR E2E');
+  await expect(creci.getByText('Nome confere com o cadastro.')).toBeVisible();
   await creci.getByRole('button', { name: 'Aprovar CRECI' }).click();
   await expect(creci).toHaveCount(0); // sai da fila
 

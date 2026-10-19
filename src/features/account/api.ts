@@ -138,6 +138,8 @@ export function useSubmitCreci() {
       userId: string;
       creciNumber: string;
       creciState: string;
+      creciType: 'PF' | 'PJ';
+      brokerageOrgId: string | null;
       file: File | null;
       currentPath: string | null;
     }) => {
@@ -155,6 +157,8 @@ export function useSubmitCreci() {
           user_id: input.userId,
           creci_number: input.creciNumber,
           creci_state: input.creciState,
+          creci_type: input.creciType,
+          brokerage_org_id: input.brokerageOrgId,
           document_path: documentPath,
         },
         { onConflict: 'user_id' },
@@ -172,6 +176,7 @@ export function useCreateOrganization() {
       name: string;
       type: OrganizationType;
       documentId: string;
+      cnpjLookupId?: string | null;
       city: string;
       state: string;
     }) => {
@@ -181,10 +186,23 @@ export function useCreateOrganization() {
         p_document_id: input.documentId,
         p_city: input.city,
         p_state: input.state,
+        p_cnpj_lookup_id: input.cnpjLookupId ?? null,
       });
       if (error) throw error;
       return data as string;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['me'] }),
+  });
+}
+
+/** Consulta pública oficial do CRECI da UF (verificação assistida, nível B). */
+export function useCreciLookupUrl(state: string) {
+  return useQuery({
+    queryKey: ['creci-lookup-url', state],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('creci_lookup_url', { p_state: state });
+      if (error) throw error;
+      return (data as string | null) ?? null;
+    },
   });
 }
