@@ -19,6 +19,8 @@ import {
   AdminUsersPage,
 } from '@/features/admin/AdminPages';
 import { AdminTermsPage } from '@/features/admin/TermsPage';
+import { OwnerLeadPage } from '@/features/owner/OwnerLeadPage';
+import { OwnerAreasPage } from '@/features/owner/OwnerAreasPage';
 
 export function App() {
   useEffect(() => {
@@ -29,6 +31,8 @@ export function App() {
       <Route path="/entrar" element={<LoginPage />} />
       <Route path="/cadastro" element={<SignupPage />} />
       <Route path="/convite/:token" element={<InvitationPage />} />
+      {/* Porta do proprietário: pública (lead anônimo) ou com conta de proprietário (D021). */}
+      <Route path="/cadastrar-area" element={<OwnerLeadPage />} />
       <Route
         element={
           <RequireAuth>
@@ -39,6 +43,7 @@ export function App() {
         {/* Acessível a qualquer conta, inclusive pendente (D014). */}
         <Route path="/conta" element={<AccountPage />} />
         <Route path="/organizacao/:id" element={<OrganizationPage />} />
+        <Route path="/minhas-areas" element={<OwnerAreasPage />} />
 
         <Route
           path="/oportunidades"

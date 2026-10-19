@@ -58,6 +58,14 @@ export function AccountPage() {
           </p>
         )}
       </Notice>
+      {profile.signup_kind === 'owner' && (
+        <Notice title={t.account.owner.title}>
+          {t.account.owner.body}{' '}
+          <Link to="/minhas-areas" className="text-action hover:underline">
+            {t.account.owner.link}
+          </Link>
+        </Notice>
+      )}
       <ProfileSection />
       {showBroker && <BrokerSection />}
       {showOrganization && <OrganizationSection />}
@@ -217,7 +225,10 @@ function ConsentSection() {
           const granted = current?.granted ?? false;
           const text = texts.data?.[p];
           return (
-            <li key={p} className="flex flex-col gap-3 py-3 sm:flex-row sm:items-start sm:justify-between">
+            <li
+              key={p}
+              className="flex flex-col gap-3 py-3 sm:flex-row sm:items-start sm:justify-between"
+            >
               <div className="min-w-0 sm:flex-1">
                 <p className="text-sm font-medium text-ink">{t.enums.consentPurpose[p]}</p>
                 {text && <p className="mt-1 text-xs text-muted">{text.body}</p>}

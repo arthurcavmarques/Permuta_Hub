@@ -54,7 +54,11 @@ export function useHasAgreement(type: AgreementType, opportunityId?: string) {
 export function useAcceptAgreement() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (input: { type: AgreementType; opportunityId?: string; bodyHash: string }) => {
+    mutationFn: async (input: {
+      type: AgreementType;
+      opportunityId?: string;
+      bodyHash: string;
+    }) => {
       const { data, error } = await supabase.rpc('accept_agreement', {
         p_type: input.type,
         p_opportunity_id: input.opportunityId ?? null,
@@ -106,7 +110,9 @@ export function useAgreementTemplates() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('agreement_templates')
-        .select('id, type, version, title, body_markdown, body_hash, scope, validity_months, active, created_at')
+        .select(
+          'id, type, version, title, body_markdown, body_hash, scope, validity_months, active, created_at',
+        )
         .order('type')
         .order('created_at', { ascending: false });
       if (error) throw error;

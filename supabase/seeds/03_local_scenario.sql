@@ -76,3 +76,7 @@ select d.id, e.event::public.distribution_event_type, now() - e.ago
                      ('delivered', interval '2 days' - interval '2 minutes')) as e(event, ago)
  where d.source = 'platform'
  order by d.seq, e.ago desc;
+
+-- Fase 2: E2E repetidos no mesmo IP local não podem esbarrar no anti-spam do formulário de captação.
+update public.platform_settings set value = '1000'
+ where key in ('lead_rate_limit_per_hour', 'lead_rate_limit_per_contact_day');

@@ -1,6 +1,6 @@
 /** Tipos de identidade espelhando o banco (migration 20261010000001_identity_orgs). */
 export type AccountStatus = 'pending' | 'approved' | 'rejected' | 'suspended';
-export type SignupKind = 'broker' | 'buyer';
+export type SignupKind = 'broker' | 'buyer' | 'owner';
 export type MemberRole = 'admin' | 'broker' | 'buyer' | 'viewer';
 export type VerificationStatus = 'pending' | 'approved' | 'rejected';
 export type ContactChannel = 'whatsapp' | 'email';

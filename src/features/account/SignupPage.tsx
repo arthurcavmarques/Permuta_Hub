@@ -16,7 +16,7 @@ import { EmailAlreadyRegistered, signUp, useActiveConsentTexts } from './api';
 
 const schema = z
   .object({
-    kind: z.enum(['broker', 'buyer']),
+    kind: z.enum(['broker', 'buyer', 'owner']),
     fullName: z.string().trim().min(3, t.signup.errors.name),
     phone: z.string().refine((v) => normalizeBrazilianPhone(v) !== null, t.signup.errors.phone),
     email: z.string().trim().toLowerCase().email(t.auth.emailInvalid),
@@ -73,7 +73,11 @@ export function SignupPage() {
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { kind: 'buyer', whatsapp: false, emailContact: false },
+    defaultValues: {
+      kind: params.get('tipo') === 'owner' ? 'owner' : 'buyer',
+      whatsapp: false,
+      emailContact: false,
+    },
   });
 
   const preview = invite.data;
@@ -104,7 +108,7 @@ export function SignupPage() {
         await acceptInvitation(inviteToken);
         await refresh(); // convite aprova a conta: o guard precisa do perfil novo
         navigate('/oportunidades', { replace: true });
-      } else navigate('/conta', { replace: true });
+      } else navigate(values.kind === 'owner' ? '/minhas-areas' : '/conta', { replace: true });
     } catch (e) {
       setDone(false);
       setFormError(
@@ -136,7 +140,7 @@ export function SignupPage() {
           {!lockedEmail && (
             <fieldset className="space-y-2">
               <legend className="text-xs font-medium text-muted">{t.signup.kind}</legend>
-              {(['buyer', 'broker'] as const).map((k) => (
+              {(['buyer', 'broker', 'owner'] as const).map((k) => (
                 <label
                   key={k}
                   className="flex cursor-pointer items-center gap-3 rounded-md border border-border p-3 text-sm has-[:checked]:border-action"

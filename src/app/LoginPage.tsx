@@ -89,6 +89,12 @@ export function LoginPage() {
               {t.auth.createAccount}
             </Link>
           </p>
+          <p className="text-center text-sm text-muted">
+            {t.auth.haveArea}{' '}
+            <Link to="/cadastrar-area" className="text-action hover:underline">
+              {t.auth.offerArea}
+            </Link>
+          </p>
         </form>
       </div>
     </div>

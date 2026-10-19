@@ -35,11 +35,7 @@ export function AdminTermsPage() {
     <div className="space-y-6">
       <Notice>{t.admin.terms.body}</Notice>
       {TYPES.map((type) => (
-        <TermType
-          key={type}
-          type={type}
-          versions={(data ?? []).filter((v) => v.type === type)}
-        />
+        <TermType key={type} type={type} versions={(data ?? []).filter((v) => v.type === type)} />
       ))}
     </div>
   );
@@ -51,7 +47,10 @@ function TermType({ type, versions }: { type: AgreementType; versions: Agreement
   const active = versions.find((v) => v.active);
 
   return (
-    <section className="rounded-lg border border-border bg-surface p-4" data-testid={`terms-${type}`}>
+    <section
+      className="rounded-lg border border-border bg-surface p-4"
+      data-testid={`terms-${type}`}
+    >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <h2 className="text-base font-semibold text-primary">{t.agreements.types[type]}</h2>
@@ -92,9 +91,7 @@ function TermType({ type, versions }: { type: AgreementType; versions: Agreement
           </li>
         ))}
       </ul>
-      {editing && active && (
-        <PublishForm current={active} onDone={() => setEditing(false)} />
-      )}
+      {editing && active && <PublishForm current={active} onDone={() => setEditing(false)} />}
     </section>
   );
 }

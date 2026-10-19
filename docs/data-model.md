@@ -15,6 +15,8 @@ Convenções: tabelas e colunas em inglês; todas com `id uuid`, `created_at`, `
 | `20261010000001_identity_orgs.sql` | Fase 1: status de conta (D014), membros, corretores/CRECI, consentimentos, caixa de saída, convites (D015), regras do corretor em `opportunities` |
 | `20261010000002_distributions_append_only.sql` | Fase 1: `distributions`/`distribution_events` append-only (D016), cadeia de hashes (D017), legado (D018), `can_view_blind` ampliado, `integration_settings` |
 | `20261019000001_agreements.sql` | Fase 2.1: termos versionados, aceites e revogações append-only, regra nova do dado sensível (D020) |
+| `20261019000002_owner_kind.sql` | Fase 2.2: valor `owner` em `signup_kind` (migration própria: enum novo não se usa na mesma transação) |
+| `20261019000003_owner_leads.sql` | Fase 2.2: porta do proprietário — `owner_leads`, formulário público, "minhas áreas" agregada (D021) |
 
 Reversão: `supabase/rollbacks/<migration>.down.sql` (rodar na ordem inversa; ver runbook).
 
@@ -28,7 +30,7 @@ Reversão: `supabase/rollbacks/<migration>.down.sql` (rodar na ordem inversa; ve
 | `negotiation_model` | sale, swap, partnership, other |
 | `media_kind` | photo, map, aerial, other |
 | `account_status` | pending, approved, rejected, suspended |
-| `signup_kind` | broker, buyer |
+| `signup_kind` | broker, buyer, owner |
 | `member_role` | admin, broker, buyer, viewer |
 | `verification_status` | pending, approved, rejected |
 | `contact_channel` | whatsapp, email |
@@ -216,3 +218,22 @@ pessoal, não da organização). `get_opportunity_sensitive` só devolve com `al
 `has_valid_agreement()` deixou de ser placeholder.
 
 `platform_settings` novas: `platform_legal_name`, `platform_document_id` (placeholders — DEPENDE DO JURÍDICO).
+
+### Fase 2 — porta do proprietário (bloco 2.2, D021)
+Tipos: `respondent_relation` (owner, authorized_intermediary, knows_owner), `lead_status` (new, qualifying,
+forwarded, discarded, converted), `lead_source` (public_form, owner_account).
+
+**`owner_leads`** — área oferecida por proprietário: relação, localização em texto + cidade/bairro/UF, metragem
+aproximada, modelos de negociação, observações, **contato** (nome, telefone/e-mail), `owner_user_id` (se veio da
+conta), `consent_id` (consentimento de privacidade em `contact_consents`, com IP), status, `assigned_to` (corretor
+que vai atender), origem, UTM, IP, `converted_opportunity_id`. `opportunities.origin_lead_id` ganhou FK.
+Entrada **só** por `submit_owner_lead` (anon ou proprietário logado): validação no servidor, **honeypot** (envio de
+robô é aceito sem gravar), **rate limit** por IP/hora e por contato/dia (`lead_rate_limit_*` em `platform_settings`;
+seed local afrouxa para os E2E). Proprietário logado precisa do termo `owner_terms` antes. **RLS:** curadoria tudo;
+proprietário lê os próprios; corretor aprovado lê os leads atribuídos a ele. anon não lê nada.
+
+**Proprietário:** `signup_kind = owner`; conta nasce pendente, mas `is_owner_account()` deixa usar a porta e aceitar
+o próprio termo enquanto isso. `owner_my_areas()` devolve as áreas dele com status, "aguardando corretor
+responsável" (oportunidade sem responsável), nome/telefone do corretor responsável e **contagens agregadas** de
+organizações que receberam e que demonstraram interesse — nunca quem (regra 3). O vínculo área ↔ proprietário é
+pelo lead (`converted_opportunity_id`); `opportunities` não ganhou coluna de proprietário.

@@ -31,7 +31,10 @@ export function AgreementCard({
   const changed = (accept.error as { code?: string } | null)?.code === '40001';
 
   return (
-    <div className="rounded-lg border border-border bg-surface p-4" data-testid={`agreement-${type}`}>
+    <div
+      className="rounded-lg border border-border bg-surface p-4"
+      data-testid={`agreement-${type}`}
+    >
       <div className="flex items-start gap-2">
         <FileSignature className="mt-0.5 h-4 w-4 shrink-0 text-action" aria-hidden />
         <div>
@@ -52,7 +55,9 @@ export function AgreementCard({
         {t.agreements.readAndAccept}
       </label>
       <p className="mt-1 text-[11px] text-muted">{t.agreements.recordNotice}</p>
-      <FormAlert message={changed ? t.agreements.changed : accept.isError ? t.common.error : null} />
+      <FormAlert
+        message={changed ? t.agreements.changed : accept.isError ? t.common.error : null}
+      />
       <div className="mt-3 flex flex-wrap gap-2">
         <Button
           size="sm"
