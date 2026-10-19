@@ -13,3 +13,6 @@ supabase/.branches
 supabase/.temp
 import-reports/
 .wrangler
+# Arquivos locais de trabalho ficam fora do repositório (D023): agentes e plano completo
+.claude/
+PermutaHub_PROMPT_CLAUDE_CODE_COMPLETO.md

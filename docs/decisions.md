@@ -100,6 +100,40 @@ Formato: data · decisão · contexto · alternativas · motivo.
   uma organização e uma `distribution` com `source = 'legacy'`, sem canal/entrega. Função idempotente
   `import_legacy_distributions()`, chamada pela migration e pelo importador.
 
+### D019 · 2026-10-19 · Revisão de requisitos (Continuidade 2.0) incorporada ao plano, numeração original mantida
+- **Contexto:** o "Prompt de Continuidade 2.0" (Arthur, 11/10) e o alinhamento com o Fábio (10/10) trouxeram
+  novos requisitos e propunham renumerar as fases de 1 a 9. A Bruna (PO) avaliou; o Arthur aprovou em 2026-10-19.
+- **Decisão:** manter a numeração original (o roteiro dos sócios continua valendo) e encaixar os itens novos:
+  Fase 2 ampliada (duas portas, termos/aceite, CNPJ/CRECI, logs); **Fase 2B** nova (importação real e painel de
+  publicáveis); planos e cota na **Fase 7**, depois de match e distribuição. O plano completo foi atualizado
+  (revisão 2026-10-19). Perguntas de negócio em `docs/perguntas à fabio.md`, com padrão seguro até a resposta.
+- **"Bug crítico" 1.2 do 2.0:** descartado pelo Arthur. O código já bloqueia (só curadoria lê o dado sensível).
+
+### D020 · 2026-10-19 · Aceite de termo do comprador antecipado para a Fase 2
+- **Motivo:** é pré-requisito para entrar dado real (Fase 2B) e reaproveita a estrutura de termos versionados
+  que a Fase 2 já precisa para corretor e proprietário. A Fase 5 fica com gestão de aceites, linha do tempo e
+  assinatura certificada.
+
+### D021 · 2026-10-19 · Proprietário com login (perfil `owner`)
+- Altera a seção 3 do plano ("owner_lead não é usuário logado"). O proprietário vê só as próprias áreas; o
+  número de destinatários e de interessados chega **agregado** por RPC, sem identificar compradores (regra 3).
+  O formulário público sem login continua existindo (lead anônimo).
+- **Padrões seguros até o Fábio responder:** área do proprietário retida até a curadoria atribuir corretor;
+  autorização anexada **e** mandato exigidos para publicar; CPF do proprietário PF não é coletado.
+
+### D022 · 2026-10-19 · Supabase: manter o plano gratuito
+- **Decisão do Arthur e dos sócios:** manter o plano atual; o espaço é suficiente para o projeto.
+- **Atenção (não é espaço):** o plano gratuito pausa o projeto após ~7 dias sem uso e não oferece backup
+  restaurável. **Mitigação:** antes da importação real (Fase 2B), backup próprio (dump de dados + schema, como
+  o feito no deploy da Fase 1, guardado fora do git) e um uso semanal mínimo. Reavaliar quando houver dado real
+  em produção.
+
+### D023 · 2026-10-19 · Plano completo e agentes locais fora do repositório
+- `PermutaHub_PROMPT_CLAUDE_CODE_COMPLETO.md` e `.claude/` estão no `.gitignore`; o plano foi removido do índice
+  do git (continua no disco de quem trabalha e no histórico antigo). Fonte da verdade compartilhada continua sendo
+  `CLAUDE.md` + `docs/`. **Consequência:** quem clonar o repositório não recebe o plano; o Arthur repassa o arquivo
+  ao Felipe por fora (ex.: pasta `Docs/` compartilhada).
+
 ## Em aberto
 
 | Tema | Dono | Prazo |
@@ -109,3 +143,6 @@ Formato: data · decisão · contexto · alternativas · motivo.
 | Provedor de WhatsApp (API oficial paga × infra Zentri) | Matheos / Zentri | Fase 4 |
 | Exportar o último hash da cadeia para fora do banco (complemento de D017) | Time técnico | Fase 8 |
 | Definição geográfica de "região" para o score de proximidade | Fábio + técnico | Fase 3 |
+| Perguntas de negócio da revisão 2026-10-19 (11 itens) | Fábio | ver `docs/perguntas à fabio.md` |
+| Canal institucional com o CRECI-RS para consulta automática | Arthur / Felipe / Fábio | antes de ligar o nível A |
+| Termos de uso comercial e limites da BrasilAPI (CNPJ) | Time técnico | antes de produção da Fase 2 |

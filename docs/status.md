@@ -1,10 +1,38 @@
 # Status
 
-**Fase atual:** 1 — Fundação: **concluída, mergeada em `main` e em produção (2026-10-10)**. Próxima: Fase 2 (aguarda aprovação).
-**Estimativa:** 50–60 h. **Realizado:** uma sessão de ~1 h de relógio (2026-10-10) com o Claude; a
-estimativa em horas de trabalho humano não se compara bem com isso — usar só como ordem de grandeza.
+**Fase atual:** 2 — Captação pelas duas portas, qualificação, verificação cadastral e aceite de termo:
+**em andamento** no branch `fase-2` (aprovada pelo Arthur em 2026-10-19). Escopo ampliado pela revisão de
+requisitos (D019–D021); plano completo atualizado (revisão 2026-10-19).
+**Estimativa da Fase 2:** 90–110 h de trabalho humano (o dobro da original, pelo escopo novo). Comparar no fim.
 
-## Fase 1 — tarefas
+## ⚠ Lembrar o Arthur no início de cada sessão
+Perguntas sem resposta ("anote"). Ao abrir uma sessão, lembrar o Arthur destas e de
+`docs/perguntas à fabio.md` (11 perguntas ao Fábio, cada uma com o padrão que o sistema adota até lá).
+
+| # | Pergunta | Dono | Desde |
+|---|---|---|---|
+| L1 | Existe canal institucional com o CRECI-RS para consulta automática (nível A)? Até lá: verificação assistida | Arthur / Felipe (e Fábio, pergunta 11) | 2026-10-19 |
+| L2 | Respostas do Fábio às 11 perguntas de `docs/perguntas à fabio.md` | Fábio (Arthur cobra) | 2026-10-19 |
+
+## Fase 2 — tarefas
+
+| Bloco | Tarefa | Situação |
+|---|---|---|
+| 2.1 | Termos versionados editáveis + `agreements` append-only + aceite do comprador antes do dado sensível | a fazer |
+| 2.2 | Proprietário com login, formulário público, "minhas áreas" sem identificar comprador, área retida | a fazer |
+| 2.3 | Editor completo do MD + autorização do proprietário + termo-mestre e aceite por área | a fazer |
+| 2.4 | Fila de leads, pipeline, mandato/publicável, logs de acesso | a fazer |
+| 2.5 | CNPJ automático (BrasilAPI) + CRECI nível B/C | a fazer |
+| 2.6 | PDF do dossiê cego com marca | a fazer |
+
+**Sessão 2026-10-19:** validação dos requisitos do Continuidade 2.0 com a Bruna (PO). Respostas do Arthur:
+"bug crítico" descartado; vídeos de 14–15/10 ignorados; Supabase segue no plano gratuito (D022); `.claude/` e o
+plano completo fora do git (D023); perguntas ao Fábio anotadas; canal CRECI anotado (L1). OK para a Fase 2.
+
+## Histórico — Fase 1 (concluída, em produção 2026-10-10)
+**Estimativa:** 50–60 h. **Realizado:** uma sessão de ~1 h de relógio (2026-10-10) com o Claude.
+
+### Fase 1 — tarefas
 
 | # | Tarefa | Situação |
 |---|---|---|
@@ -71,7 +99,10 @@ sa-east-1): catálogo, mapa, dossiê cego, PDF, importadores. Aceite em produç�
 | Pendência | Trava | Dono |
 |---|---|---|
 | Planilha Land Bank, MD de exemplo, KML, formulário, fotos (Arthur vai cobrar) | Dados reais na demo (não bloqueia a Fase 1) | Fábio |
-| Supabase free: pausa após ~7 dias sem uso e sem backup restaurável — decidir Pro ou backup próprio | Antes de entrar dado real | Arthur + Felipe |
+| Supabase free mantido (D022): rodar backup próprio antes da importação real e usar ao menos 1×/semana (pausa após ~7 dias) | Fase 2B | Arthur + Felipe |
+| Canal institucional com o CRECI-RS (consulta automática, nível A) — L1 | Nível A do CRECI | Arthur / Felipe / Fábio |
+| Respostas às perguntas de `docs/perguntas à fabio.md` — L2 | Padrões seguros da Fase 2; Fase 2B; Fase 7 | Fábio |
+| Repassar `PermutaHub_PROMPT_CLAUDE_CODE_COMPLETO.md` ao Felipe (fora do git, D023) | Felipe ter o plano | Arthur |
 | Templates de WhatsApp exigem aprovação da Meta (dias a semanas) — iniciar cedo | Fase 4 | Matheos / Zentri |
 | Escalonamento e base de cálculo da comissão | Fase 6 | Fábio + jurídico |
 | Estrutura societária/CNPJ | Lançamento | Fábio + advogado |
@@ -94,6 +125,9 @@ sa-east-1): catálogo, mapa, dossiê cego, PDF, importadores. Aceite em produç�
 - Prazo de cauda (`default_tail_period_months`, padrão 24).
 - Base legal LGPD para importar contatos legados sem consentimento registrado.
 - Textos de consentimento (`consent_texts`, hoje minuta `2026-10-v1`).
+- Textos dos termos do comprador, do corretor (termo-mestre e por área) e do proprietário (`agreement_templates`, rascunhos).
+- Intermediação direta com 50% da comissão e "Modelo 2" (Fase 6, só simulador).
+- Razão social e CNPJ da plataforma nos termos (configuração com placeholder).
 
 ## Riscos
 - Prazo: apresentação início de outubro; sem dados reais, a demo sai com dados fictícios.

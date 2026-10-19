@@ -1,7 +1,8 @@
 # PermutaHub — guia para o Claude Code
 
-> **Ao iniciar qualquer sessão:** leia `docs/status.md` e `docs/decisions.md` antes de fazer qualquer coisa.
-> A especificação completa está em `PermutaHub_PROMPT_CLAUDE_CODE_COMPLETO.md` (referência; decisões posteriores em `docs/decisions.md` prevalecem).
+> **Ao iniciar qualquer sessão:** leia `docs/status.md` e `docs/decisions.md` antes de fazer qualquer coisa, e
+> **lembre o Arthur** das perguntas pendentes (seção "Lembrar o Arthur" do status e `docs/perguntas à fabio.md`).
+> A especificação completa está em `PermutaHub_PROMPT_CLAUDE_CODE_COMPLETO.md` (local, fora do git — D023; decisões posteriores em `docs/decisions.md` prevalecem).
 
 ## Produto (resumo)
 Mesa de negócios para terrenos/áreas de incorporação (início: Porto Alegre/RS). Fluxo:
@@ -10,17 +11,19 @@ envio proativo (WhatsApp prioritário, e-mail complementar) → negociação →
 O ativo é a **rede** e a **rastreabilidade de quem apresentou o quê a quem**. Nome "PermutaHub" é provisório
 (constante `PRODUCT_NAME` em `src/config/product.ts`).
 
-## As 10 regras inegociáveis
+## As 12 regras inegociáveis
 1. Dado sensível (matrícula, endereço exato, proprietário e contatos) bloqueado por padrão, em tabela separada, com RLS; bloqueio vale **na API**.
-2. `distributions` e `access_log` são **append-only** (sem UPDATE/DELETE para ninguém, com trigger).
+2. `distributions`, `distribution_events`, `access_log`, `agreements`, `registry_lookups` e `import_batches` são **append-only** (sem UPDATE/DELETE para ninguém, com trigger).
 3. A plataforma nunca aproxima proprietário e comprador diretamente. Toda oportunidade tem `responsible_party` e `mandate_status`.
 4. "Pode distribuir sem mandato?" é configurável (`platform_settings`); padrão **não**.
-5. Nenhum percentual de comissão no código.
+5. Nenhum percentual de comissão, preço de plano ou prazo jurídico no código (tudo em configuração editável).
 6. Remuneração pode ser em ativos: modelar, não construir revenda.
 7. LGPD: consentimento registrado (texto, versão, IP, timestamp), coleta mínima, RLS em todas as tabelas, exportar/anonimizar titular.
 8. WhatsApp só com opt-in; toda mensagem com opção de sair; tratar "sair"/"parar".
 9. Sem segredos no repositório (`.env.example` completo).
 10. O que depender de jurídico → marcado **"DEPENDE DO JURÍDICO"** em `docs/status.md` e implementado configurável.
+11. Preenchimento automático (CNPJ/CRECI) nunca é verdade absoluta: grava fonte, data e hash em `registry_lookups`; fonte fora do ar nunca impede o cadastro (cai para verificação manual).
+12. Nenhuma coleta que viole termos de terceiros: proibido contornar captcha ou raspar fonte que proíba.
 
 ## Stack
 Supabase (Postgres + PostGIS, Auth, Storage, RLS, Edge Functions) · React + TypeScript + Vite + Tailwind + shadcn/ui ·
