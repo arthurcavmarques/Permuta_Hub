@@ -56,12 +56,17 @@ $$;
 drop function if exists public.creci_lookup_url(text);
 drop function if exists public.admin_broker_queue(boolean);
 drop function if exists public.review_broker(uuid, boolean, text, public.creci_status, text);
-create or replace function public.review_broker(p_user_id uuid, p_approve boolean, p_reason text default null)
+-- review_broker da Fase 1 (idêntica à de 20261010000001_identity_orgs.sql).
+create or replace function public.review_broker(
+  p_user_id uuid, p_approve boolean, p_reason text default null
+)
 returns void
 language plpgsql
 security definer
 set search_path = ''
 as $$
+declare
+  v_email text := public.user_email(p_user_id);
 begin
   if not public.is_admin() then
     raise exception 'Somente a curadoria verifica CRECI' using errcode = '42501';
@@ -69,11 +74,24 @@ begin
   if not p_approve and coalesce(trim(p_reason), '') = '' then
     raise exception 'Rejeição exige motivo' using errcode = '22023';
   end if;
+
   update public.brokers
      set verification_status = case when p_approve then 'approved' else 'rejected' end::public.verification_status,
          rejection_reason = case when p_approve then null else trim(p_reason) end,
          verified_by = auth.uid(), verified_at = now()
    where user_id = p_user_id;
+  if not found then
+    raise exception 'Corretor não encontrado' using errcode = 'P0002';
+  end if;
+
+  if v_email is not null then
+    perform public.enqueue_email(
+      v_email, case when p_approve then 'creci_approved' else 'creci_rejected' end,
+      case when p_approve then 'CRECI verificado' else 'CRECI não verificado' end,
+      case when p_approve then 'Seu CRECI foi verificado. Você já pode cadastrar áreas.'
+           else 'Seu CRECI não foi verificado. Motivo: ' || trim(p_reason) || '. Corrija e envie novamente.' end,
+      jsonb_build_object('user_id', p_user_id, 'approved', p_approve));
+  end if;
 end;
 $$;
 grant execute on function public.review_broker(uuid, boolean, text) to authenticated;
@@ -110,7 +128,47 @@ drop type if exists public.creci_status;
 drop function if exists public.review_organization_registry(uuid, boolean, text);
 drop function if exists public.create_my_organization(text, public.organization_type, text, text, text, uuid);
 drop function if exists public.apply_organization_cnpj(uuid, text, uuid);
--- create_my_organization da Fase 1: recriar a partir de 20261010000001_identity_orgs.sql se for voltar até lá.
+-- create_my_organization da Fase 1 (sem CNPJ consultado).
+create or replace function public.create_my_organization(
+  p_name text,
+  p_type public.organization_type,
+  p_document_id text default null,
+  p_city text default null,
+  p_state text default null
+)
+returns uuid
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_org uuid;
+begin
+  if auth.uid() is null then
+    raise exception 'Login necessário' using errcode = '42501';
+  end if;
+  if coalesce(trim(p_name), '') = '' then
+    raise exception 'Nome da organização é obrigatório' using errcode = '22023';
+  end if;
+  -- Conta ainda não aprovada: no máximo uma organização (evita lixo antes da revisão).
+  if not public.is_approved() and exists (
+    select 1 from public.organization_members m where m.user_id = auth.uid()
+  ) then
+    raise exception 'Conta pendente já tem organização' using errcode = '42501';
+  end if;
+
+  insert into public.organizations (name, type, document_id, city, state, created_by)
+  values (trim(p_name), p_type, nullif(trim(p_document_id), ''), nullif(trim(p_city), ''),
+          nullif(trim(p_state), ''), auth.uid())
+  returning id into v_org;
+
+  insert into public.organization_members (organization_id, user_id, role, invited_by)
+  values (v_org, auth.uid(), 'admin', auth.uid());
+  return v_org;
+end;
+$$;
+revoke execute on function public.create_my_organization(text, public.organization_type, text, text, text) from public, anon;
+grant execute on function public.create_my_organization(text, public.organization_type, text, text, text) to authenticated;
 drop function if exists public.is_valid_cnpj(text);
 create or replace function public.guard_organization_update()
 returns trigger language plpgsql set search_path = '' as $$

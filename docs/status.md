@@ -1,9 +1,10 @@
 # Status
 
 **Fase atual:** 2 — Captação pelas duas portas, qualificação, verificação cadastral e aceite de termo:
-**em andamento** no branch `fase-2` (aprovada pelo Arthur em 2026-10-19). Escopo ampliado pela revisão de
-requisitos (D019–D021); plano completo atualizado (revisão 2026-10-19).
-**Estimativa da Fase 2:** 90–110 h de trabalho humano (o dobro da original, pelo escopo novo). Comparar no fim.
+**implementada no branch `fase-2` (2026-10-19), aguardando OK do Arthur/Felipe para merge e deploy.**
+Escopo ampliado pela revisão de requisitos (D019–D021); plano completo atualizado (revisão 2026-10-19).
+**Estimativa:** 90–110 h de trabalho humano. **Realizado:** uma sessão de ~3 h de relógio com o Claude
+(ordem de grandeza só; não se compara bem com horas humanas).
 
 ## ⚠ Lembrar o Arthur no início de cada sessão
 Perguntas sem resposta ("anote"). Ao abrir uma sessão, lembrar o Arthur destas e de
@@ -18,16 +19,69 @@ Perguntas sem resposta ("anote"). Ao abrir uma sessão, lembrar o Arthur destas 
 
 | Bloco | Tarefa | Situação |
 |---|---|---|
-| 2.1 | Termos versionados editáveis + `agreements` append-only + aceite do comprador antes do dado sensível | feito (e9b5836) |
+| 2.1 | Termos versionados editáveis + `agreements` append-only + aceite do comprador antes do dado sensível | feito |
 | 2.2 | Proprietário com login, formulário público, "minhas áreas" sem identificar comprador, área retida | feito |
 | 2.3 | Editor completo do MD + autorização do proprietário + termo-mestre e aceite por área | feito |
 | 2.4 | Fila de leads, pipeline, mandato/publicável, logs de acesso | feito |
 | 2.5 | CNPJ automático (BrasilAPI) + CRECI nível B/C | feito |
 | 2.6 | PDF do dossiê cego com marca | feito |
+| — | Migrations reversíveis | feito: `supabase/rollbacks/2026101900000{1,3,4,5,6}` testados (down → testes da Fase 1 passam → up) |
+| — | Testes | pgTAP 318 (9 arquivos), Vitest 117, Playwright 27 (+3 pulados de propósito: fluxos longos só no desktop) |
+
+**Aceite da Fase 2:**
+- ✔ (a) sem aceite, dado sensível inacessível pela tela **e** pela API para o comprador; com aceite, acessível e
+  logado; revogado/expirado volta a bloquear (`04_agreements`, E2E "comprador só vê o dado restrito…").
+- ✔ (b) proprietário se cadastra, aceita o termo, cadastra área retida e vê só o que é dele, com números agregados
+  e sem identificar comprador (`05_owner_leads`, E2E do proprietário).
+- ✔ (c) corretor tem CNPJ da imobiliária preenchido e travado (ou cai na fila manual) e CRECI conferido; cadastra
+  área com autorização anexada e aceite por área (`06_md_editor`, `08_registry`, E2E do editor e do CNPJ).
+- ✔ (d) lead entra pelo formulário, é qualificado e vira dossiê publicável sem planilha (`07_curation`, E2E
+  "lead vira dossiê publicável").
+- ✔ (e) área sem autorização, sem responsável ou sem mandato (regra 4) não publica — nem pela API (`07_curation`).
+
+**Como testar em 5 minutos (local):** `npx supabase db reset` → `npm run dev` →
+(1) em `/cadastrar-area` (link "Cadastre aqui" no login), ofereça uma área sem login;
+(2) entre como `admin@permutahub.local` / `admin-local-123` → Curadoria → **Leads** → "Converter em oportunidade":
+a tela da área lista **o que falta**; atribua "Corretor Aprovado" e mandato "Exclusividade"; "Editar área" →
+zoneamento, importe `scripts/fixtures/exemplo.kml`, envie uma foto (marque "versão cega"), anexe uma autorização e
+clique "Conferir";
+(3) entre como `corretor@permutahub.local` / `corretor-local-123` → abra a área (/areas/<id>/editar) e aceite o
+termo da área;
+(4) volte como admin → "Publicar"; veja o **Histórico** e a aba **Logs de acesso**;
+(5) como `comprador@permutahub.local` / `comprador-local-123`, abra MD-001 → "Revelar dados restritos" pede o termo.
+
+**Ficou de fora (e por quê):**
+- Nível A do CRECI (consulta automática): não há fonte legítima (D025, pendência L1).
+- Reverificação **automática** mensal do CNPJ: exige pg_cron + pg_net; a curadoria reconsulta (D024).
+- ReceitaWS como 2º provedor de CNPJ: implementado, desligado até conferir termos/limites (D024).
+- Desenho de polígono com edição de vértices (arrastar): o editor marca pontos e importa KML; ajuste fino pelo
+  Google Earth + reimportação.
+- Gestão de aceites pela curadoria (lista, revogar pela tela, exportar comprovante) e expiração por cauda: Fase 5
+  (a revogação já existe por RPC).
+- Fila de leads por WhatsApp/e-mail automático ao proprietário: depende do domínio e do provedor (Fase 4).
+- Importação pela tela e painel de publicáveis da base real: Fase 2B.
+
+**Riscos novos:**
+- Foto marcada "versão cega" pelo corretor é só proposta; a curadoria precisa revisar antes de publicar (a
+  publicação é o portão).
+- BrasilAPI é comunitária, sem SLA nem termos publicados; se cair, o cadastro segue manual (fila maior).
+- O PDF leva o e-mail de quem gerou: inibe repasse, mas não impede print de tela.
+- Proprietário com conta pendente já cadastra área: spam possível (mitigado por honeypot, rate limit e curadoria).
+- `opportunities.status` de áreas legadas (seed/importador) pode estar "qualificada" sem passar pela checagem de
+  publicável: a trava vale para mudanças feitas pelo app. Rever na Fase 2B (painel de publicáveis).
+
+**O que o humano precisa validar/fornecer:**
+- Respostas do Fábio (`docs/perguntas à fabio.md`), sobretudo 1–4 (padrões seguros da Fase 2 já no ar).
+- Texto do advogado para os 5 termos (trocar pela aba **Termos**, sem deploy) e razão social/CNPJ da plataforma
+  (`platform_settings.platform_legal_name` / `platform_document_id`).
+- OK para merge e **deploy**, que agora tem um passo a mais: `supabase db push` + `supabase functions deploy
+  registry-lookup` + `npm run deploy` (runbook 6.1.3). Os corretores aprovados em produção passam a ter
+  reverificação agendada em 12 meses.
 
 **Sessão 2026-10-19:** validação dos requisitos do Continuidade 2.0 com a Bruna (PO). Respostas do Arthur:
 "bug crítico" descartado; vídeos de 14–15/10 ignorados; Supabase segue no plano gratuito (D022); `.claude/` e o
 plano completo fora do git (D023); perguntas ao Fábio anotadas; canal CRECI anotado (L1). OK para a Fase 2.
+Fase 2 implementada na mesma sessão (blocos 2.1–2.6), testes verdes; **não** mergeada nem publicada.
 
 ## Histórico — Fase 1 (concluída, em produção 2026-10-10)
 **Estimativa:** 50–60 h. **Realizado:** uma sessão de ~1 h de relógio (2026-10-10) com o Claude.
