@@ -199,6 +199,7 @@ export const t = {
       creci: 'Fila de CRECI',
       organizations: 'Organizações',
       outbox: 'Caixa de saída',
+      terms: 'Termos',
     },
     users: {
       search: 'Buscar por nome ou e-mail',
@@ -233,6 +234,24 @@ export const t = {
       inactive: 'Inativa',
       invite: 'Convidar',
       empty: 'Nenhuma organização.',
+    },
+    terms: {
+      body: 'Textos aceitos pelos usuários. Publicar uma versão nova não altera os aceites já feitos (cada aceite guarda o texto que a pessoa leu). Rascunhos marcados com MINUTA dependem do advogado.',
+      active: 'Ativa',
+      previous: 'Versão anterior',
+      validity: (m: number | null) => (m ? `aceite vale ${m} meses` : 'aceite não expira'),
+      variables:
+        'Variáveis disponíveis: {{party_name}}, {{organization_name}}, {{memorial_number}}, {{platform_legal_name}}, {{platform_document_id}}, {{tail_period_months}}.',
+      newVersion: 'Publicar nova versão',
+      version: 'Versão (ex.: 2026-11-v1)',
+      title: 'Título',
+      text: 'Texto',
+      validityMonths: 'Validade do aceite em meses (vazio = não expira)',
+      publish: 'Publicar',
+      publishing: 'Publicando…',
+      published: 'Nova versão publicada.',
+      show: 'Ver texto',
+      hide: 'Ocultar texto',
     },
     outbox: {
       body: 'Sem domínio próprio, os e-mails ficam aqui (D015). Copie o link de convite e envie por WhatsApp, se preciso.',
@@ -301,6 +320,28 @@ export const t = {
     notes: 'Observações',
     empty: 'Nenhum dado restrito cadastrado.',
     denied: 'Acesso negado.',
+    needsAgreement:
+      'Para ver estes dados, aceite o termo de confidencialidade e não-circunvenção desta área.',
+  },
+  agreements: {
+    version: (v: string) => `versão ${v}`,
+    readAndAccept: 'Li o texto acima e aceito o termo.',
+    recordNotice:
+      'O aceite fica registrado com data, hora, IP, navegador e o código (hash) deste texto.',
+    accept: 'Aceitar termo',
+    accepting: 'Registrando aceite…',
+    cancel: 'Agora não',
+    changed: 'O texto do termo foi atualizado. Leia a nova versão antes de aceitar.',
+    unavailable: 'Termo indisponível no momento.',
+    accepted: 'Termo aceito.',
+    types: {
+      non_circumvention: 'Comprador: confidencialidade e não-circunvenção',
+      broker_partnership: 'Corretor: termo-mestre de parceria',
+      broker_area_authorization: 'Corretor: autorização por área',
+      owner_terms: 'Proprietário',
+      platform_terms: 'Termos de uso',
+    },
+    scopes: { global: 'Vale para todas as áreas', opportunity: 'Um aceite por área' },
   },
   enums: {
     status: {

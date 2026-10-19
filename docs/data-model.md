@@ -14,6 +14,7 @@ Convenções: tabelas e colunas em inglês; todas com `id uuid`, `created_at`, `
 | `20260929000002_geometry_import.sql` | RPC `set_opportunity_geometry` usada pelo importador KML/KMZ |
 | `20261010000001_identity_orgs.sql` | Fase 1: status de conta (D014), membros, corretores/CRECI, consentimentos, caixa de saída, convites (D015), regras do corretor em `opportunities` |
 | `20261010000002_distributions_append_only.sql` | Fase 1: `distributions`/`distribution_events` append-only (D016), cadeia de hashes (D017), legado (D018), `can_view_blind` ampliado, `integration_settings` |
+| `20261019000001_agreements.sql` | Fase 2.1: termos versionados, aceites e revogações append-only, regra nova do dado sensível (D020) |
 
 Reversão: `supabase/rollbacks/<migration>.down.sql` (rodar na ordem inversa; ver runbook).
 
@@ -188,3 +189,30 @@ broker_verifier=`manual_queue`, map=`maplibre_openfreemap`, billing=`none`. Segr
 ## Próximas fases (planejado)
 - Fase 2: `owner_leads` (FK `origin_lead_id`).
 - Fase 5: termos/aceites e `has_valid_agreement()`.
+
+### Fase 2 — termos e aceite (bloco 2.1, D020)
+Migration `20261019000001_agreements.sql`. Tipos: `agreement_type` (non_circumvention, broker_partnership,
+broker_area_authorization, owner_terms, platform_terms) e `agreement_scope` (global, opportunity).
+
+**`agreement_templates`** (type, version, title, body_markdown, body_hash gerado, scope, validity_months, active,
+created_by) — texto publicado é imutável; nova versão pela RPC `publish_agreement_template` (só curadoria), que
+desativa a anterior. Um ativo por tipo. Variáveis `{{...}}` preenchidas no servidor por `render_agreement` (nome,
+organização, número do MD, razão social/CNPJ da plataforma e prazo de cauda de `platform_settings`). Rascunhos
+`2026-10-v0.1` marcados **MINUTA — DEPENDE DO JURÍDICO**. **RLS:** logado lê os ativos; curadoria lê todos.
+
+**`agreements`** — **append-only** com cadeia de hashes (D017): template, versão, parte (usuário + organização),
+escopo/área, **texto renderizado e seu SHA-256**, prazo de cauda, IP, user agent, provedor (`internal_hash`),
+signed_at, expires_at (validade do modelo). Escrita só por `accept_agreement(tipo, área, hash_esperado)`, que
+recusa se o texto mudou desde a prévia (`get_agreement_preview`) e grava `access_log`.
+**`agreement_revocations`** — append-only; revogar = nova linha (`revoke_agreement`, curadoria ou a própria parte).
+View `valid_agreements` = não revogado e não expirado. **RLS:** a parte e a curadoria leem.
+
+**Quem pode aceitar** (`can_accept_agreement`): comprador só para área que recebeu pela plataforma; termo-mestre só
+quem tem cadastro de corretor; autorização por área só o corretor responsável.
+
+**Dado sensível** (`sensitive_access_state` → `allowed | needs_agreement | denied`):
+curadoria; corretor aprovado **responsável** pela área; destinatário da área **com termo válido próprio** (o termo é
+pessoal, não da organização). `get_opportunity_sensitive` só devolve com `allowed` e grava o log antes.
+`has_valid_agreement()` deixou de ser placeholder.
+
+`platform_settings` novas: `platform_legal_name`, `platform_document_id` (placeholders — DEPENDE DO JURÍDICO).

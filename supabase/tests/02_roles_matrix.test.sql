@@ -121,8 +121,8 @@ select throws_ok($$ update public.opportunities set status = 'qualified' where i
   '42501', null, 'corretor: não muda status');
 select lives_ok($$ update public.opportunities set zoning = 'Mista' where id = 'c0000000-0000-0000-0000-000000000002' $$,
   'corretor: edita dados da própria área captada');
-select throws_ok($$ select * from public.get_opportunity_sensitive('c0000000-0000-0000-0000-000000000002') $$,
-  '42501', null, 'corretor: dado sensível segue bloqueado (Fase 5)');
+select lives_ok($$ select * from public.get_opportunity_sensitive('c0000000-0000-0000-0000-000000000002') $$,
+  'corretor responsável: lê o dado sensível da própria área (Fase 2, D020)');
 select lives_ok($$ update public.brokers set creci_number = '111-G' where user_id = 'a0000000-0000-0000-0000-000000000003' $$,
   'corretor: corrige o CRECI');
 select is((select verification_status::text from public.brokers where user_id = 'a0000000-0000-0000-0000-000000000003'),

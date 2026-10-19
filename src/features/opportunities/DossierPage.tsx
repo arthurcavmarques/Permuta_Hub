@@ -11,7 +11,6 @@ import {
   formatMoneyCompact,
 } from '@/lib/format';
 import { ApproxLocationMap } from '@/lib/map';
-import { useAuth } from '@/lib/auth';
 import { Button } from '@/components/ui/button';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { FullPageMessage } from '@/app/guards';
@@ -45,7 +44,6 @@ function KeyFigure({ label, value }: { label: string; value: string | null }) {
 
 export function DossierPage() {
   const { id = '' } = useParams();
-  const { isPlatformAdmin } = useAuth();
   const { data: o, isLoading, isError } = useBlindOpportunity(id);
   const media = useBlindMedia(id);
 
@@ -202,12 +200,11 @@ export function DossierPage() {
           {o.negotiation_conditions && <p className="mt-3">{o.negotiation_conditions}</p>}
         </Section>
 
-        {/* Nunca vai para o PDF: o PDF é sempre a versão cega. */}
-        {isPlatformAdmin && (
-          <div className="print:hidden">
-            <SensitivePanel opportunityId={o.id} />
-          </div>
-        )}
+        {/* Nunca vai para o PDF: o PDF é sempre a versão cega. O painel se esconde sozinho
+            para quem não pode ler nem aceitar o termo (sensitive_access_state). */}
+        <div className="print:hidden">
+          <SensitivePanel opportunityId={o.id} />
+        </div>
 
         <footer className="mt-6 border-t border-border pt-4 text-xs text-muted">
           {PRODUCT_NAME} · {t.dossier.footer(formatDate(new Date()))}

@@ -38,6 +38,7 @@ export function AdminLayout() {
     { to: '/admin/usuarios', label: t.admin.tabs.users },
     { to: '/admin/creci', label: t.admin.tabs.creci },
     { to: '/admin/organizacoes', label: t.admin.tabs.organizations },
+    { to: '/admin/termos', label: t.admin.tabs.terms },
     { to: '/admin/caixa-de-saida', label: t.admin.tabs.outbox },
   ];
   return (

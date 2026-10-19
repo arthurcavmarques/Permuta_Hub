@@ -18,6 +18,7 @@ import {
   AdminOutboxPage,
   AdminUsersPage,
 } from '@/features/admin/AdminPages';
+import { AdminTermsPage } from '@/features/admin/TermsPage';
 
 export function App() {
   useEffect(() => {
@@ -75,6 +76,7 @@ export function App() {
           <Route path="usuarios" element={<AdminUsersPage />} />
           <Route path="creci" element={<AdminCreciPage />} />
           <Route path="organizacoes" element={<AdminOrganizationsPage />} />
+          <Route path="termos" element={<AdminTermsPage />} />
           <Route path="caixa-de-saida" element={<AdminOutboxPage />} />
         </Route>
       </Route>
