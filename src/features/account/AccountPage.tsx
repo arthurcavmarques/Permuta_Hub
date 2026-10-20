@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { t } from '@/i18n/pt-BR';
@@ -23,9 +23,11 @@ import {
   useCreateOrganization,
   useMyConsents,
   useRecordConsent,
+  useCreciLookupUrl,
   useSubmitCreci,
   useUpdateProfile,
 } from './api';
+import { CnpjField, type CnpjValue } from './CnpjField';
 
 const accountTone: Record<AccountStatus, Tone> = {
   pending: 'warning',
@@ -45,7 +47,9 @@ export function AccountPage() {
   if (!profile) return null;
   const status: AccountStatus = isPlatformAdmin ? 'approved' : profile.account_status;
   const showBroker = profile.signup_kind === 'broker' || !!broker;
-  const showOrganization = profile.signup_kind === 'buyer' || memberships.length > 0;
+  // Corretor também cadastra a imobiliária (CNPJ) para vincular ao CRECI.
+  const showOrganization =
+    profile.signup_kind === 'buyer' || profile.signup_kind === 'broker' || memberships.length > 0;
 
   return (
     <div className="mx-auto max-w-3xl space-y-6 px-4 py-6">
@@ -58,6 +62,14 @@ export function AccountPage() {
           </p>
         )}
       </Notice>
+      {profile.signup_kind === 'owner' && (
+        <Notice title={t.account.owner.title}>
+          {t.account.owner.body}{' '}
+          <Link to="/minhas-areas" className="text-action hover:underline">
+            {t.account.owner.link}
+          </Link>
+        </Notice>
+      )}
       <ProfileSection />
       {showBroker && <BrokerSection />}
       {showOrganization && <OrganizationSection />}
@@ -217,7 +229,10 @@ function ConsentSection() {
           const granted = current?.granted ?? false;
           const text = texts.data?.[p];
           return (
-            <li key={p} className="flex flex-col gap-3 py-3 sm:flex-row sm:items-start sm:justify-between">
+            <li
+              key={p}
+              className="flex flex-col gap-3 py-3 sm:flex-row sm:items-start sm:justify-between"
+            >
               <div className="min-w-0 sm:flex-1">
                 <p className="text-sm font-medium text-ink">{t.enums.consentPurpose[p]}</p>
                 {text && <p className="mt-1 text-xs text-muted">{text.body}</p>}
@@ -257,31 +272,41 @@ const MAX_DOC_BYTES = 10 * 1024 * 1024;
 const creciSchema = z.object({
   creciNumber: z.string().trim().min(3, t.common.error),
   creciState: z.enum(UF),
+  creciType: z.enum(['PF', 'PJ']),
+  brokerageOrgId: z.string(),
 });
 type CreciValues = z.infer<typeof creciSchema>;
 
 function BrokerSection() {
-  const { profile, broker } = useAuth();
+  const { profile, broker, memberships } = useAuth();
   const submit = useSubmitCreci();
+  const brokerages = memberships.filter((m) => m.organization.type === 'brokerage');
   const [file, setFile] = useState<File | null>(null);
   const [fileError, setFileError] = useState<string | null>(null);
   const {
     register,
     handleSubmit,
+    control,
     formState: { errors },
   } = useForm<CreciValues>({
     resolver: zodResolver(creciSchema),
     defaultValues: {
       creciNumber: broker?.creci_number ?? '',
       creciState: (broker?.creci_state as CreciValues['creciState']) ?? 'RS',
+      creciType: broker?.creci_type ?? 'PF',
+      brokerageOrgId: broker?.brokerage_org_id ?? '',
     },
   });
+  const creciState = useWatch({ control, name: 'creciState' });
+  const lookupUrl = useCreciLookupUrl(creciState);
 
   const onSubmit = async (v: CreciValues) => {
     await submit.mutateAsync({
       userId: profile!.user_id,
       creciNumber: v.creciNumber.trim(),
       creciState: v.creciState,
+      creciType: v.creciType,
+      brokerageOrgId: v.brokerageOrgId || null,
       file,
       currentPath: broker?.document_path ?? null,
     });
@@ -300,6 +325,11 @@ function BrokerSection() {
         )
       }
     >
+      {broker?.verification_status === 'approved' && broker.next_review_at && (
+        <p className="mb-4 text-xs text-muted">
+          {t.account.broker.nextReview(formatDate(new Date(broker.next_review_at)))}
+        </p>
+      )}
       {broker?.verification_status === 'rejected' && broker.rejection_reason && (
         <Notice tone="danger" className="mb-4">
           {t.account.broker.rejectionReason}: {broker.rejection_reason}
@@ -318,6 +348,44 @@ function BrokerSection() {
               <option key={uf}>{uf}</option>
             ))}
           </Select>
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="creciType">{t.account.broker.type}</Label>
+          <Select id="creciType" {...register('creciType')}>
+            <option value="PF">{t.account.broker.types.PF}</option>
+            <option value="PJ">{t.account.broker.types.PJ}</option>
+          </Select>
+        </div>
+        <div className="space-y-1.5 sm:col-span-2">
+          <Label htmlFor="brokerageOrgId">{t.account.broker.brokerage}</Label>
+          <Select id="brokerageOrgId" {...register('brokerageOrgId')}>
+            <option value="">{t.account.broker.noBrokerage}</option>
+            {brokerages.map((m) => (
+              <option key={m.organization_id} value={m.organization_id}>
+                {m.organization.name}
+              </option>
+            ))}
+          </Select>
+          {brokerages.length === 0 && (
+            <p className="text-[11px] text-muted">{t.account.broker.brokerageHint}</p>
+          )}
+        </div>
+        <div className="sm:col-span-3">
+          <Notice>
+            {t.account.broker.assisted}{' '}
+            {lookupUrl.data ? (
+              <a
+                href={lookupUrl.data}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium text-action hover:underline"
+              >
+                {t.account.broker.openLookup(creciState)}
+              </a>
+            ) : (
+              t.account.broker.noLookup
+            )}
+          </Notice>
         </div>
         <div className="space-y-1.5 sm:col-span-3">
           <Label htmlFor="creciDoc">{t.account.broker.document}</Label>
@@ -360,7 +428,6 @@ function BrokerSection() {
 const orgSchema = z.object({
   name: z.string().trim().min(2, t.common.error),
   type: z.enum(ORGANIZATION_TYPES),
-  documentId: z.string().trim(),
   city: z.string().trim(),
   state: z.enum(UF),
 });
@@ -369,14 +436,23 @@ type OrgValues = z.infer<typeof orgSchema>;
 function OrganizationSection() {
   const { memberships } = useAuth();
   const create = useCreateOrganization();
+  const [cnpj, setCnpj] = useState<CnpjValue | null>(null);
   const {
     register,
     handleSubmit,
+    setValue,
+    getValues,
     formState: { errors },
   } = useForm<OrgValues>({
     resolver: zodResolver(orgSchema),
-    defaultValues: { type: 'developer', state: 'RS', documentId: '', city: '' },
+    defaultValues: { type: 'developer', state: 'RS', city: '' },
   });
+  const onCnpj = (v: CnpjValue | null) => {
+    setCnpj(v);
+    // Nome de exibição: pré-preenche com o da Receita (a pessoa pode ajustar o apelido).
+    if (v?.data && !getValues('name')) setValue('name', v.data.trade_name ?? v.data.legal_name);
+    if (v?.data?.city && !getValues('city')) setValue('city', v.data.city);
+  };
 
   if (memberships.length > 0)
     return (
@@ -416,7 +492,8 @@ function OrganizationSection() {
     create.mutate({
       name: v.name,
       type: v.type,
-      documentId: v.documentId,
+      documentId: cnpj?.cnpj ?? '',
+      cnpjLookupId: cnpj?.lookupId ?? null,
       city: v.city,
       state: v.state,
     });
@@ -424,6 +501,14 @@ function OrganizationSection() {
   return (
     <Section title={t.account.organization.title} description={t.account.organization.body}>
       <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4 sm:grid-cols-2" noValidate>
+        <div className="sm:col-span-2">
+          <CnpjField
+            id="org-doc"
+            label={t.account.organization.document}
+            value={cnpj}
+            onChange={onCnpj}
+          />
+        </div>
         <div className="space-y-1.5 sm:col-span-2">
           <Label htmlFor="org-name">{t.account.organization.name}</Label>
           <Input id="org-name" {...register('name')} />
@@ -438,10 +523,6 @@ function OrganizationSection() {
               </option>
             ))}
           </Select>
-        </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="org-doc">{t.account.organization.document}</Label>
-          <Input id="org-doc" inputMode="numeric" {...register('documentId')} />
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="org-city">{t.account.organization.city}</Label>

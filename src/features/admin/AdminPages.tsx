@@ -3,9 +3,11 @@ import { NavLink, Outlet } from 'react-router-dom';
 import { t } from '@/i18n/pt-BR';
 import { cn } from '@/lib/utils';
 import { formatDate } from '@/lib/format';
-import type { AccountStatus, VerificationStatus } from '@/lib/identity';
+import type { AccountStatus, CreciStatus, VerificationStatus } from '@/lib/identity';
+import { nameMatch } from '@/lib/names';
+import { formatCnpj } from '@shared/cnpj';
 import { Button } from '@/components/ui/button';
-import { Input, Select } from '@/components/ui/form';
+import { Input, Label, Select } from '@/components/ui/form';
 import { Badge, Notice, type Tone } from '@/components/ui/section';
 import { FullPageMessage } from '@/app/guards';
 import { InviteForm } from '@/features/organizations/OrganizationPage';
@@ -14,9 +16,13 @@ import {
   useAdminOrganizations,
   useAdminUsers,
   useBrokerQueue,
+  type BrokerQueueItem,
   useOutbox,
   useReviewAccount,
   useReviewBroker,
+  useReviewOrganizationRegistry,
+  type AdminOrganization,
+  type OrgVerification,
   useSetOrganizationActive,
 } from './api';
 
@@ -35,9 +41,13 @@ const day = (iso: string) => formatDate(new Date(iso));
 
 export function AdminLayout() {
   const tabs = [
+    { to: '/admin/leads', label: t.admin.tabs.leads },
+    { to: '/admin/areas', label: t.admin.tabs.areas },
     { to: '/admin/usuarios', label: t.admin.tabs.users },
     { to: '/admin/creci', label: t.admin.tabs.creci },
     { to: '/admin/organizacoes', label: t.admin.tabs.organizations },
+    { to: '/admin/termos', label: t.admin.tabs.terms },
+    { to: '/admin/logs', label: t.admin.tabs.logs },
     { to: '/admin/caixa-de-saida', label: t.admin.tabs.outbox },
   ];
   return (
@@ -221,20 +231,12 @@ export function AdminUsersPage() {
 export function AdminCreciPage() {
   const [showAll, setShowAll] = useState(false);
   const queue = useBrokerQueue(showAll);
-  const users = useAdminUsers();
-  const review = useReviewBroker();
-  const byId = useMemo(() => new Map((users.data ?? []).map((u) => [u.user_id, u])), [users.data]);
-
-  if (queue.isLoading || users.isLoading) return <FullPageMessage title={t.common.loading} />;
-  if (queue.isError || users.isError) return <FullPageMessage title={t.common.error} />;
-
-  const reject = (userId: string) => {
-    const reason = window.prompt(t.admin.creci.reasonPrompt)?.trim();
-    if (reason) review.mutate({ userId, approve: false, reason });
-  };
+  if (queue.isLoading) return <FullPageMessage title={t.common.loading} />;
+  if (queue.isError) return <FullPageMessage title={t.common.error} />;
 
   return (
     <div className="space-y-4">
+      <Notice>{t.admin.creci.body}</Notice>
       <label className="flex items-center gap-2 text-sm text-muted">
         <input
           type="checkbox"
@@ -244,79 +246,137 @@ export function AdminCreciPage() {
         />
         {t.admin.creci.showAll}
       </label>
-      {review.isError && <Notice tone="danger">{t.common.error}</Notice>}
       {(queue.data ?? []).length === 0 ? (
         <p className="text-sm text-muted">{t.admin.creci.empty}</p>
       ) : (
         <ul className="space-y-3">
-          {queue.data!.map((b) => {
-            const u = byId.get(b.user_id);
-            return (
-              <li
-                key={b.user_id}
-                className="rounded-lg border border-border bg-surface p-4"
-                data-testid={`creci-${u?.email}`}
-              >
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <p className="font-medium text-ink">{u?.full_name ?? '—'}</p>
-                    <p className="text-xs text-muted">{u?.email}</p>
-                    <p className="mt-1 text-sm">
-                      CRECI <strong>{b.creci_number}</strong> / {b.creci_state}
-                    </p>
-                    {u && u.account_status !== 'approved' && (
-                      <p className="mt-1 text-xs text-warning">{t.admin.creci.accountPending}</p>
-                    )}
-                    {b.rejection_reason && (
-                      <p className="mt-1 text-xs text-muted">
-                        {t.account.broker.rejectionReason}: {b.rejection_reason}
-                      </p>
-                    )}
-                  </div>
-                  <Badge tone={creciTone[b.verification_status]}>
-                    {t.account.broker.status[b.verification_status]}
-                  </Badge>
-                </div>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {b.document_path ? (
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      onClick={async () =>
-                        window.open(await brokerDocumentUrl(b.document_path!), '_blank', 'noopener')
-                      }
-                    >
-                      {t.admin.creci.openDocument}
-                    </Button>
-                  ) : (
-                    <span className="text-xs text-muted">{t.admin.creci.noDocument}</span>
-                  )}
-                  {b.verification_status !== 'approved' && (
-                    <Button
-                      size="sm"
-                      disabled={review.isPending}
-                      onClick={() => review.mutate({ userId: b.user_id, approve: true })}
-                    >
-                      {t.admin.creci.approve}
-                    </Button>
-                  )}
-                  {b.verification_status !== 'rejected' && (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      disabled={review.isPending}
-                      onClick={() => reject(b.user_id)}
-                    >
-                      {t.admin.creci.reject}
-                    </Button>
-                  )}
-                </div>
-              </li>
-            );
-          })}
+          {queue.data!.map((b) => (
+            <CreciItem key={b.user_id} b={b} />
+          ))}
         </ul>
       )}
     </div>
+  );
+}
+
+const CRECI_STATUSES: CreciStatus[] = ['active', 'inactive', 'suspended', 'cancelled'];
+
+function CreciItem({ b }: { b: BrokerQueueItem }) {
+  const review = useReviewBroker();
+  const [name, setName] = useState(b.verified_name ?? '');
+  const [status, setStatus] = useState<CreciStatus>('active');
+  const match = nameMatch(name, b.full_name);
+  const reject = () => {
+    const reason = window.prompt(t.admin.creci.reasonPrompt)?.trim();
+    if (reason) review.mutate({ userId: b.user_id, approve: false, reason });
+  };
+
+  return (
+    <li className="rounded-lg border border-border bg-surface p-4" data-testid={`creci-${b.email}`}>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="font-medium text-ink">{b.full_name ?? '—'}</p>
+          <p className="text-xs text-muted">{b.email}</p>
+          <p className="mt-1 text-sm">
+            CRECI <strong>{b.creci_number}</strong> / {b.creci_state} · {b.creci_type}
+            {b.brokerage_name && (
+              <span className="text-muted">
+                {' '}
+                · {b.brokerage_name}
+                {b.brokerage_cnpj && ` (${formatCnpj(b.brokerage_cnpj)})`}
+              </span>
+            )}
+          </p>
+          {b.account_status !== 'approved' && (
+            <p className="mt-1 text-xs text-warning">{t.admin.creci.accountPending}</p>
+          )}
+          {b.rejection_reason && (
+            <p className="mt-1 text-xs text-muted">
+              {t.account.broker.rejectionReason}: {b.rejection_reason}
+            </p>
+          )}
+        </div>
+        <div className="flex flex-wrap gap-1">
+          {b.sla_overdue && <Badge tone="danger">{t.admin.creci.slaOverdue}</Badge>}
+          {b.review_due && <Badge tone="warning">{t.admin.creci.reviewDue}</Badge>}
+          <Badge tone={creciTone[b.verification_status]}>
+            {t.account.broker.status[b.verification_status]}
+          </Badge>
+          {b.creci_status !== 'unknown' && <Badge>{t.admin.creci.statuses[b.creci_status]}</Badge>}
+        </div>
+      </div>
+      <div className="mt-3 flex flex-wrap gap-2">
+        {b.lookup_url ? (
+          <Button asChild size="sm" variant="secondary">
+            <a href={b.lookup_url} target="_blank" rel="noopener noreferrer">
+              {t.admin.creci.openLookup(b.creci_state)}
+            </a>
+          </Button>
+        ) : (
+          <span className="self-center text-xs text-muted">{t.admin.creci.noLookup}</span>
+        )}
+        {b.document_path ? (
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={async () =>
+              window.open(await brokerDocumentUrl(b.document_path!), '_blank', 'noopener')
+            }
+          >
+            {t.admin.creci.openDocument}
+          </Button>
+        ) : (
+          <span className="self-center text-xs text-muted">{t.admin.creci.noDocument}</span>
+        )}
+      </div>
+      <div className="mt-3 grid gap-3 sm:grid-cols-3">
+        <div className="space-y-1.5 sm:col-span-2">
+          <Label htmlFor={`vn-${b.user_id}`}>{t.admin.creci.verifiedName}</Label>
+          <Input id={`vn-${b.user_id}`} value={name} onChange={(e) => setName(e.target.value)} />
+          {match !== null && (
+            <p className={cn('text-xs', match >= 0.8 ? 'text-success' : 'text-warning')}>
+              {match >= 0.8 ? t.admin.creci.nameOk : t.admin.creci.nameDiverges(b.full_name ?? '')}
+            </p>
+          )}
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor={`cs-${b.user_id}`}>{t.admin.creci.creciStatus}</Label>
+          <Select
+            id={`cs-${b.user_id}`}
+            value={status}
+            onChange={(e) => setStatus(e.target.value as CreciStatus)}
+          >
+            {CRECI_STATUSES.map((s) => (
+              <option key={s} value={s}>
+                {t.admin.creci.statuses[s]}
+              </option>
+            ))}
+          </Select>
+        </div>
+      </div>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <Button
+          size="sm"
+          disabled={review.isPending || !name.trim()}
+          onClick={() =>
+            review.mutate({
+              userId: b.user_id,
+              approve: true,
+              creciStatus: status,
+              verifiedName: name,
+            })
+          }
+        >
+          {status === 'active' ? t.admin.creci.approve : t.admin.creci.registerStatus}
+        </Button>
+        {b.verification_status !== 'rejected' && (
+          <Button size="sm" variant="ghost" disabled={review.isPending} onClick={reject}>
+            {t.admin.creci.reject}
+          </Button>
+        )}
+      </div>
+      {review.isError && <p className="mt-2 text-xs text-danger">{t.common.error}</p>}
+    </li>
   );
 }
 
@@ -358,6 +418,7 @@ export function AdminOrganizationsPage() {
                     {o.city && ` · ${o.city}`} · {t.admin.organizations.members}:{' '}
                     {o.members[0]?.count ?? 0}
                   </p>
+                  <RegistryInfo o={o} />
                 </div>
                 <div className="flex gap-2">
                   <Button
@@ -385,6 +446,65 @@ export function AdminOrganizationsPage() {
             </li>
           ))}
         </ul>
+      )}
+    </div>
+  );
+}
+
+const orgTone: Record<OrgVerification, Tone> = {
+  unverified: 'neutral',
+  verified: 'success',
+  pending_manual: 'warning',
+  pending_review: 'danger',
+};
+
+function RegistryInfo({ o }: { o: AdminOrganization }) {
+  const review = useReviewOrganizationRegistry();
+  const pending =
+    o.verification_status === 'pending_manual' || o.verification_status === 'pending_review';
+  return (
+    <div className="mt-1 space-y-1 text-xs" data-testid={`org-registry-${o.name}`}>
+      <p className="flex flex-wrap items-center gap-2">
+        <Badge tone={orgTone[o.verification_status]}>
+          {t.admin.organizations.verification[o.verification_status]}
+        </Badge>
+        {o.cnpj && <span className="tabular text-ink">{formatCnpj(o.cnpj)}</span>}
+        {o.legal_name && <span className="text-muted">{o.legal_name}</span>}
+        {o.registry_status && <span className="text-muted">· {o.registry_status}</span>}
+        {o.registry_source && o.registry_verified_at && (
+          <span className="text-muted">
+            · {t.admin.organizations.source(o.registry_source, day(o.registry_verified_at))}
+          </span>
+        )}
+      </p>
+      {o.cnae_warning && (
+        <p className="text-warning">
+          {t.admin.organizations.cnaeWarning}
+          {o.cnae_main_description && `: ${o.cnae_main_description}`}
+        </p>
+      )}
+      {o.verification_note && <p className="text-muted">{o.verification_note}</p>}
+      {pending && (
+        <div className="flex gap-2">
+          <Button
+            size="sm"
+            disabled={review.isPending}
+            onClick={() => review.mutate({ id: o.id, approve: true })}
+          >
+            {t.admin.organizations.confirm}
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            disabled={review.isPending}
+            onClick={() => {
+              const note = window.prompt(t.admin.organizations.refusePrompt)?.trim();
+              if (note) review.mutate({ id: o.id, approve: false, note });
+            }}
+          >
+            {t.admin.organizations.refuse}
+          </Button>
+        </div>
       )}
     </div>
   );

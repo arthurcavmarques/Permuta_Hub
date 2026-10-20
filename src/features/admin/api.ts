@@ -2,6 +2,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import type {
   AccountStatus,
+  CreciStatus,
+  CreciType,
   MemberRole,
   OrganizationType,
   SignupKind,
@@ -52,26 +54,35 @@ export function useReviewAccount() {
 
 export interface BrokerQueueItem {
   user_id: string;
+  full_name: string | null;
+  email: string;
+  account_status: AccountStatus;
   creci_number: string;
   creci_state: string;
+  creci_type: CreciType;
+  creci_status: CreciStatus;
   verification_status: VerificationStatus;
   document_path: string | null;
   rejection_reason: string | null;
+  verified_name: string | null;
+  name_match_score: number | null;
+  brokerage_name: string | null;
+  brokerage_cnpj: string | null;
   updated_at: string;
+  next_review_at: string | null;
+  sla_overdue: boolean;
+  review_due: boolean;
+  lookup_url: string | null;
 }
 
+/** Fila do nível B (envios pendentes) + reverificações vencidas (nível C); com SLA e link da consulta oficial. */
 export function useBrokerQueue(includeReviewed: boolean) {
   return useQuery({
     queryKey: ['admin', 'brokers', includeReviewed],
     queryFn: async () => {
-      let q = supabase
-        .from('brokers')
-        .select(
-          'user_id, creci_number, creci_state, verification_status, document_path, rejection_reason, updated_at',
-        )
-        .order('updated_at');
-      if (!includeReviewed) q = q.eq('verification_status', 'pending');
-      const { data, error } = await q;
+      const { data, error } = await supabase.rpc('admin_broker_queue', {
+        p_include_reviewed: includeReviewed,
+      });
       if (error) throw error;
       return data as BrokerQueueItem[];
     },
@@ -90,11 +101,19 @@ export async function brokerDocumentUrl(path: string): Promise<string> {
 export function useReviewBroker() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (input: { userId: string; approve: boolean; reason?: string }) => {
+    mutationFn: async (input: {
+      userId: string;
+      approve: boolean;
+      reason?: string;
+      creciStatus?: CreciStatus;
+      verifiedName?: string;
+    }) => {
       const { error } = await supabase.rpc('review_broker', {
         p_user_id: input.userId,
         p_approve: input.approve,
         p_reason: input.reason ?? null,
+        p_creci_status: input.creciStatus ?? 'active',
+        p_verified_name: input.verifiedName ?? null,
       });
       if (error) throw error;
     },
@@ -102,9 +121,20 @@ export function useReviewBroker() {
   });
 }
 
+export type OrgVerification = 'unverified' | 'verified' | 'pending_manual' | 'pending_review';
+
 export interface AdminOrganization {
   id: string;
   name: string;
+  cnpj: string | null;
+  legal_name: string | null;
+  registry_status: string | null;
+  registry_source: string | null;
+  registry_verified_at: string | null;
+  cnae_main_description: string | null;
+  cnae_warning: boolean;
+  verification_status: OrgVerification;
+  verification_note: string | null;
   type: OrganizationType;
   city: string | null;
   state: string | null;
@@ -120,7 +150,7 @@ export function useAdminOrganizations() {
       const { data, error } = await supabase
         .from('organizations')
         .select(
-          'id, name, type, city, state, active, created_at, members:organization_members(count)',
+          'id, name, type, city, state, active, created_at, cnpj, legal_name, registry_status, registry_source, registry_verified_at, cnae_main_description, cnae_warning, verification_status, verification_note, members:organization_members(count)',
         )
         .order('name');
       if (error) throw error;
@@ -163,5 +193,20 @@ export function useOutbox() {
       if (error) throw error;
       return data as OutboxRow[];
     },
+  });
+}
+
+export function useReviewOrganizationRegistry() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { id: string; approve: boolean; note?: string }) => {
+      const { error } = await supabase.rpc('review_organization_registry', {
+        p_org_id: input.id,
+        p_approve: input.approve,
+        p_note: input.note ?? null,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin'] }),
   });
 }

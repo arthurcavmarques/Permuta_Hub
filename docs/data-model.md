@@ -14,6 +14,13 @@ Convenções: tabelas e colunas em inglês; todas com `id uuid`, `created_at`, `
 | `20260929000002_geometry_import.sql` | RPC `set_opportunity_geometry` usada pelo importador KML/KMZ |
 | `20261010000001_identity_orgs.sql` | Fase 1: status de conta (D014), membros, corretores/CRECI, consentimentos, caixa de saída, convites (D015), regras do corretor em `opportunities` |
 | `20261010000002_distributions_append_only.sql` | Fase 1: `distributions`/`distribution_events` append-only (D016), cadeia de hashes (D017), legado (D018), `can_view_blind` ampliado, `integration_settings` |
+| `20261019000001_agreements.sql` | Fase 2.1: termos versionados, aceites e revogações append-only, regra nova do dado sensível (D020) |
+| `20261019000002_owner_kind.sql` | Fase 2.2: valor `owner` em `signup_kind` (migration própria: enum novo não se usa na mesma transação) |
+| `20261019000003_owner_leads.sql` | Fase 2.2: porta do proprietário — `owner_leads`, formulário público, "minhas áreas" agregada (D021) |
+| `20261019000004_md_editor.sql` | Fase 2.3: editor do MD — termo-mestre no cadastro, geometria e dado sensível por RPC, fotos/documentos do corretor, autorização do proprietário |
+| `20261019000005_curation.sql` | Fase 2.4: curadoria — fila de leads e conversão, `opportunity_events`, publicável (regra 4), publicar, logs de acesso |
+| `20261019000006_registry.sql` | Fase 2.5: `registry_lookups`, CNPJ nas organizações (único), CRECI níveis B/C (D024, D025) |
+| `20261019000007_dossier_print.sql` | Fase 2.6: `log_dossier_print` — geração do PDF do dossiê no `access_log` |
 
 Reversão: `supabase/rollbacks/<migration>.down.sql` (rodar na ordem inversa; ver runbook).
 
@@ -27,7 +34,7 @@ Reversão: `supabase/rollbacks/<migration>.down.sql` (rodar na ordem inversa; ve
 | `negotiation_model` | sale, swap, partnership, other |
 | `media_kind` | photo, map, aerial, other |
 | `account_status` | pending, approved, rejected, suspended |
-| `signup_kind` | broker, buyer |
+| `signup_kind` | broker, buyer, owner |
 | `member_role` | admin, broker, buyer, viewer |
 | `verification_status` | pending, approved, rejected |
 | `contact_channel` | whatsapp, email |
@@ -188,3 +195,115 @@ broker_verifier=`manual_queue`, map=`maplibre_openfreemap`, billing=`none`. Segr
 ## Próximas fases (planejado)
 - Fase 2: `owner_leads` (FK `origin_lead_id`).
 - Fase 5: termos/aceites e `has_valid_agreement()`.
+
+### Fase 2 — termos e aceite (bloco 2.1, D020)
+Migration `20261019000001_agreements.sql`. Tipos: `agreement_type` (non_circumvention, broker_partnership,
+broker_area_authorization, owner_terms, platform_terms) e `agreement_scope` (global, opportunity).
+
+**`agreement_templates`** (type, version, title, body_markdown, body_hash gerado, scope, validity_months, active,
+created_by) — texto publicado é imutável; nova versão pela RPC `publish_agreement_template` (só curadoria), que
+desativa a anterior. Um ativo por tipo. Variáveis `{{...}}` preenchidas no servidor por `render_agreement` (nome,
+organização, número do MD, razão social/CNPJ da plataforma e prazo de cauda de `platform_settings`). Rascunhos
+`2026-10-v0.1` marcados **MINUTA — DEPENDE DO JURÍDICO**. **RLS:** logado lê os ativos; curadoria lê todos.
+
+**`agreements`** — **append-only** com cadeia de hashes (D017): template, versão, parte (usuário + organização),
+escopo/área, **texto renderizado e seu SHA-256**, prazo de cauda, IP, user agent, provedor (`internal_hash`),
+signed_at, expires_at (validade do modelo). Escrita só por `accept_agreement(tipo, área, hash_esperado)`, que
+recusa se o texto mudou desde a prévia (`get_agreement_preview`) e grava `access_log`.
+**`agreement_revocations`** — append-only; revogar = nova linha (`revoke_agreement`, curadoria ou a própria parte).
+View `valid_agreements` = não revogado e não expirado. **RLS:** a parte e a curadoria leem.
+
+**Quem pode aceitar** (`can_accept_agreement`): comprador só para área que recebeu pela plataforma; termo-mestre só
+quem tem cadastro de corretor; autorização por área só o corretor responsável.
+
+**Dado sensível** (`sensitive_access_state` → `allowed | needs_agreement | denied`):
+curadoria; corretor aprovado **responsável** pela área; destinatário da área **com termo válido próprio** (o termo é
+pessoal, não da organização). `get_opportunity_sensitive` só devolve com `allowed` e grava o log antes.
+`has_valid_agreement()` deixou de ser placeholder.
+
+`platform_settings` novas: `platform_legal_name`, `platform_document_id` (placeholders — DEPENDE DO JURÍDICO).
+
+### Fase 2 — porta do proprietário (bloco 2.2, D021)
+Tipos: `respondent_relation` (owner, authorized_intermediary, knows_owner), `lead_status` (new, qualifying,
+forwarded, discarded, converted), `lead_source` (public_form, owner_account).
+
+**`owner_leads`** — área oferecida por proprietário: relação, localização em texto + cidade/bairro/UF, metragem
+aproximada, modelos de negociação, observações, **contato** (nome, telefone/e-mail), `owner_user_id` (se veio da
+conta), `consent_id` (consentimento de privacidade em `contact_consents`, com IP), status, `assigned_to` (corretor
+que vai atender), origem, UTM, IP, `converted_opportunity_id`. `opportunities.origin_lead_id` ganhou FK.
+Entrada **só** por `submit_owner_lead` (anon ou proprietário logado): validação no servidor, **honeypot** (envio de
+robô é aceito sem gravar), **rate limit** por IP/hora e por contato/dia (`lead_rate_limit_*` em `platform_settings`;
+seed local afrouxa para os E2E). Proprietário logado precisa do termo `owner_terms` antes. **RLS:** curadoria tudo;
+proprietário lê os próprios; corretor aprovado lê os leads atribuídos a ele. anon não lê nada.
+
+**Proprietário:** `signup_kind = owner`; conta nasce pendente, mas `is_owner_account()` deixa usar a porta e aceitar
+o próprio termo enquanto isso. `owner_my_areas()` devolve as áreas dele com status, "aguardando corretor
+responsável" (oportunidade sem responsável), nome/telefone do corretor responsável e **contagens agregadas** de
+organizações que receberam e que demonstraram interesse — nunca quem (regra 3). O vínculo área ↔ proprietário é
+pelo lead (`converted_opportunity_id`); `opportunities` não ganhou coluna de proprietário.
+
+### Fase 2 — porta do corretor e editor do MD (bloco 2.3)
+**Quem edita** (`can_edit_opportunity`): curadoria sempre; corretor aprovado **responsável** enquanto a área está
+`captured`/`qualifying`. Corretor só cadastra área depois de aceitar o **termo-mestre** (`broker_partnership`,
+exigido na RLS de insert de `opportunities`).
+
+**Localização exata:** escrita só por `set_opportunity_geometry_geojson` (polígono, multipolígono ou ponto; Z
+descartado; geometria inválida corrigida; fora da caixa do Brasil recusada — pega lat/lng invertidos) e lida pelo
+editor com `get_opportunity_geometry`. Gravação registrada no `access_log` (`write_geometry`).
+**Dado sensível:** `upsert_opportunity_sensitive` (mesma permissão; `write_sensitive` no log). A tabela continua
+sem nenhum privilégio para o app.
+
+**Fotos:** corretor responsável insere/edita/remove `opportunity_media` da própria área e os objetos em
+`opportunity-media/<opportunity_id>/…` (`storage_opportunity_id(name)` lê a pasta). `is_blind_safe` marcado pelo
+corretor é **proposta**: só chega a comprador depois que a curadoria publica. Bucket limitado a imagens de até 15 MB.
+
+**`opportunity_documents`** (opportunity_id, kind `owner_authorization|registry|technical|other`, sensitivity
+`blind|restricted`, storage_path, file_name, uploaded_by, `review_status` `pending|accepted|rejected`,
+review_note, reviewed_by/at) — bucket privado `opportunity-documents` (PDF/imagem até 20 MB). Autorização do
+proprietário é sempre `restricted`; o corretor não altera a revisão (trigger), só a curadoria por
+`review_owner_authorization`. **RLS:** curadoria tudo; corretor responsável lê, envia e apaga (não apaga a já
+conferida); destinatário lê documento `blind` com o dossiê e `restricted` só com acesso ao dado sensível;
+**autorização do proprietário nunca** chega ao comprador. Objetos do Storage seguem a linha da tabela.
+Substitui a tabela `owner_authorizations` prevista no plano (mesma informação, uma tabela só).
+
+### Fase 2 — curadoria (bloco 2.4)
+**`opportunity_events`** — histórico **append-only** da área: `created`, `status`, `mandate`, `responsible`,
+`published`, `unpublished`, `note`, com de/para, nota e autor. Gravado por trigger em `opportunities` (a nota vem
+de `app.event_note`, preenchida pelas RPCs) e por `add_opportunity_note`. **RLS:** curadoria e corretor
+responsável leem.
+
+**Publicável:** `publish_blockers_of(linha)` devolve códigos do que falta (a tela traduz): campos mínimos de
+`platform_settings.publishable_required_fields` (proposta, **DEPENDE DO FÁBIO**), responsável (regra 3 — sem ele a
+área está "aguardando corretor responsável"), CRECI do responsável verificado, aceite de 1 clique do corretor na
+área, autorização do proprietário conferida e mandato (regra 4: só exclusivo/não exclusivo, salvo
+`allow_distribution_without_mandate`; "em obtenção" não publica). `opportunity_publish_blockers(id)` é a versão
+para a tela. Trigger `opportunities_publish_guard`: pelo app, a área só entra em qualificada/distribuição/negociação
+ou ganha `published_at` sem pendências; responsável precisa ser corretor verificado.
+
+**RPCs da curadoria:** `publish_opportunity` (qualificada + `published_at`), `curate_opportunity` (status, mandato,
+responsável, despublicar, com nota; qualificar só por "publicar"), `curate_lead` (em análise / pedir dados por
+e-mail / encaminhar a corretor verificado com aviso por e-mail / descartar com motivo), `convert_lead` (cria a área
+`qualifying` pré-preenchida, responsável = corretor que recebeu o lead, contato do proprietário vai para o dado
+sensível), `admin_list_brokers`, `admin_access_log` (filtros por data, ação e MD; nome/e-mail do ator).
+
+### Fase 2 — verificação cadastral (bloco 2.5, D024, D025)
+**`registry_lookups`** — **append-only**: kind (`cnpj`/`creci`), consulta normalizada, quem pediu, provedor,
+resultado (`ok|not_found|invalid|error|timeout|cache`), resposta normalizada (só dados da empresa) e seu hash,
+latência, erro. Gravada **só** pela Edge Function `registry-lookup` (service_role tem apenas INSERT); cada
+tentativa vira uma linha; cache = linha `cache` apontando a original. **RLS:** quem pediu e a curadoria leem.
+
+**`organizations` (novas colunas):** `cnpj` (14 dígitos, **único**), razão social, nome fantasia, situação, data de
+abertura, natureza jurídica, CNAE principal/secundários, endereço, fonte, data, `registry_lookup_id`,
+`cnae_warning` (CNAE fora de `cnae_real_estate_prefixes`: só aviso), `verification_status`
+(`unverified|verified|pending_manual|pending_review`), nota. Pelo app, só a curadoria muda CNPJ e dados da Receita;
+`apply_organization_cnpj` aplica a partir de uma consulta **da própria pessoa**, recente e ok (ou manual →
+`pending_manual`); situação não ativa → `pending_review`. `create_my_organization` ganhou `p_cnpj_lookup_id`.
+`review_organization_registry` (curadoria). `is_valid_cnpj` repete no banco a regra de
+`supabase/functions/_shared/cnpj.ts`.
+
+**`brokers` (novas colunas):** `creci_type` (PF/PJ), `creci_status` (`active|inactive|suspended|cancelled|unknown`),
+`verification_method`, `source`, `verified_name`, `name_match_score` (pg_trgm + unaccent), `brokerage_org_id`
+(imobiliária da qual a pessoa é membro), `next_review_at`. `is_approved_broker()` agora exige **CRECI ativo**.
+`review_broker(usuário, aprova, motivo, situação, nome_conferido)`; situação diferente de ativa = não verificado.
+`admin_broker_queue` traz link oficial, SLA estourado e reverificação vencida. Aprovados da Fase 1 viraram
+`active` com reverificação em 12 meses; carga de backend já aprovada entra como `active`.

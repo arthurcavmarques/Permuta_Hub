@@ -82,6 +82,9 @@ test('PDF do dossiê não contém dado sensível mesmo depois de revelado', asyn
   await expect(page.getByText('MAT-001-FICT')).toBeVisible();
   await page.emulateMedia({ media: 'print' });
   await expect(page.getByText('MAT-001-FICT')).toBeHidden();
+  // Rodapé de cada página: marca, MD e quem gerou (Fase 2.6).
+  await expect(page.getByTestId('print-footer')).toContainText('MD-001');
+  await expect(page.getByTestId('print-footer')).toContainText('Gerado para admin@permutahub.local');
   // controles +/− do mapa não vão para o papel
   await expect(page.locator('.maplibregl-ctrl-top-right')).toBeHidden();
   await page.waitForTimeout(1500);

@@ -1,6 +1,6 @@
 /** Tipos de identidade espelhando o banco (migration 20261010000001_identity_orgs). */
 export type AccountStatus = 'pending' | 'approved' | 'rejected' | 'suspended';
-export type SignupKind = 'broker' | 'buyer';
+export type SignupKind = 'broker' | 'buyer' | 'owner';
 export type MemberRole = 'admin' | 'broker' | 'buyer' | 'viewer';
 export type VerificationStatus = 'pending' | 'approved' | 'rejected';
 export type ContactChannel = 'whatsapp' | 'email';
@@ -19,9 +19,16 @@ export interface Profile {
   review_note: string | null;
 }
 
+export type CreciStatus = 'active' | 'inactive' | 'suspended' | 'cancelled' | 'unknown';
+export type CreciType = 'PF' | 'PJ';
+
 export interface BrokerRecord {
   creci_number: string;
   creci_state: string;
+  creci_type: CreciType;
+  creci_status: CreciStatus;
+  brokerage_org_id: string | null;
+  next_review_at: string | null;
   verification_status: VerificationStatus;
   document_path: string | null;
   rejection_reason: string | null;

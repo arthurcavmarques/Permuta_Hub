@@ -68,6 +68,7 @@ test('corretor se cadastra, fica pendente, é aprovado pela curadoria e cadastra
   // 3. Curadoria aprova conta e CRECI; e-mails vão para a caixa de saída.
   await login(page, ADMIN);
   await page.getByRole('link', { name: 'Curadoria' }).click();
+  await page.getByRole('link', { name: 'Usuários' }).click();
   const row = page.getByTestId(`user-${email}`);
   await expect(row.getByText('Conta em análise')).toBeVisible();
   await row.getByRole('button', { name: 'Aprovar' }).click();
@@ -76,6 +77,10 @@ test('corretor se cadastra, fica pendente, é aprovado pela curadoria e cadastra
   await page.getByRole('link', { name: 'Fila de CRECI' }).click();
   const creci = page.getByTestId(`creci-${email}`);
   await expect(creci.getByText('12345-F')).toBeVisible();
+  // Verificação assistida (Fase 2.5): link da consulta oficial e nome conferido.
+  await expect(creci.getByRole('link', { name: 'Consulta oficial CRECI-RS' })).toBeVisible();
+  await creci.getByLabel('Nome como consta na consulta oficial').fill('CORRETOR E2E');
+  await expect(creci.getByText('Nome confere com o cadastro.')).toBeVisible();
   await creci.getByRole('button', { name: 'Aprovar CRECI' }).click();
   await expect(creci).toHaveCount(0); // sai da fila
 
@@ -83,14 +88,20 @@ test('corretor se cadastra, fica pendente, é aprovado pela curadoria e cadastra
   await expect(page.getByText(email).first()).toBeVisible();
   await logout(page);
 
-  // 4. Corretor aprovado cadastra área: entra como captada e ele vê o dossiê cego dela.
+  // 4. Corretor aprovado aceita o termo-mestre (Fase 2) e cadastra área: entra como captada,
+  // segue para o editor e ele vê o dossiê cego dela.
   await login(page, { email, password: SENHA });
   await page.getByRole('link', { name: 'Cadastrar área' }).click();
+  const master = page.getByTestId('agreement-broker_partnership');
+  await master.getByLabel('Li o texto acima e aceito o termo.').check();
+  await master.getByRole('button', { name: 'Aceitar termo' }).click();
   await page.getByLabel('Cidade').fill('Porto Alegre');
   await page.getByLabel('Bairro').fill('Bairro E2E');
   await page.getByLabel('Área (m²)').fill('2450');
   await page.getByLabel('Permuta').check();
   await page.getByRole('button', { name: 'Cadastrar área' }).click();
+  await expect(page).toHaveURL(/\/editar$/);
+  await page.getByRole('link', { name: 'Ver versão cega' }).click();
   await expect(page.getByRole('heading', { level: 1 })).toContainText('2.500 m²');
   await expect(page.getByText('Captada').first()).toBeVisible();
 });

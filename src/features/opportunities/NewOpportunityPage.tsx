@@ -10,6 +10,8 @@ import { UF } from '@/lib/identity';
 import { Button } from '@/components/ui/button';
 import { Input, Label, Select, Textarea } from '@/components/ui/form';
 import { FieldError, FormAlert, Notice, Section } from '@/components/ui/section';
+import { AgreementCard } from '@/features/agreements/AgreementCard';
+import { useHasAgreement } from '@/features/agreements/api';
 import type { NegotiationModel } from './types';
 
 const MODELS = Object.keys(t.enums.negotiationModel) as NegotiationModel[];
@@ -26,9 +28,50 @@ const schema = z.object({
 type FormInput = z.input<typeof schema>;
 type FormValues = z.output<typeof schema>;
 
-/** Corretor aprovado cadastra área "captada"; a curadoria qualifica (RLS + trigger no banco). */
+/**
+ * Corretor aprovado (com termo-mestre) ou curadoria cadastra área "captada" e segue para o editor
+ * completo. A curadoria qualifica e publica (RLS + trigger no banco).
+ */
 export function NewOpportunityPage() {
-  const { session, isApprovedBroker } = useAuth();
+  const { isApprovedBroker, isPlatformAdmin } = useAuth();
+  const masterTerm = useHasAgreement('broker_partnership');
+  if (!isApprovedBroker && !isPlatformAdmin)
+    return (
+      <Page>
+        <Notice tone="warning">{t.newArea.needCreci}</Notice>
+      </Page>
+    );
+  if (!isPlatformAdmin && masterTerm.isLoading)
+    return (
+      <Page>
+        <p className="text-sm text-muted">{t.common.loading}</p>
+      </Page>
+    );
+  if (!isPlatformAdmin && !masterTerm.data)
+    return (
+      <Page>
+        <p className="text-sm text-muted">{t.newArea.masterTermFirst}</p>
+        <AgreementCard type="broker_partnership" />
+      </Page>
+    );
+  return (
+    <Page>
+      <NewAreaForm />
+    </Page>
+  );
+}
+
+function Page({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="mx-auto max-w-3xl space-y-6 px-4 py-6">
+      <h1 className="text-2xl font-semibold text-primary">{t.newArea.title}</h1>
+      {children}
+    </div>
+  );
+}
+
+function NewAreaForm() {
+  const { session, isPlatformAdmin } = useAuth();
   const navigate = useNavigate();
   const qc = useQueryClient();
   const create = useMutation({
@@ -43,7 +86,8 @@ export function NewOpportunityPage() {
           land_type: v.land_type || null,
           negotiation_models: v.negotiation_models,
           negotiation_conditions: v.negotiation_conditions || null,
-          responsible_party_user_id: session!.user.id,
+          // Curadoria cria sem responsável (atribui depois); corretor é o responsável (RLS exige).
+          responsible_party_user_id: isPlatformAdmin ? null : session!.user.id,
         })
         .select('id')
         .single();
@@ -52,7 +96,7 @@ export function NewOpportunityPage() {
     },
     onSuccess: async (id) => {
       await qc.invalidateQueries({ queryKey: ['opportunities-blind'] });
-      navigate(`/oportunidades/${id}`);
+      navigate(`/areas/${id}/editar`);
     },
   });
 
@@ -72,72 +116,65 @@ export function NewOpportunityPage() {
   });
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6 px-4 py-6">
-      <h1 className="text-2xl font-semibold text-primary">{t.newArea.title}</h1>
-      {!isApprovedBroker ? (
-        <Notice tone="warning">{t.newArea.needCreci}</Notice>
-      ) : (
-        <Section title={t.newArea.title} description={t.newArea.body}>
-          <form
-            onSubmit={handleSubmit((v) => create.mutate(v))}
-            className="grid gap-4 sm:grid-cols-3"
-            noValidate
-          >
-            <div className="space-y-1.5 sm:col-span-2">
-              <Label htmlFor="city">{t.newArea.city}</Label>
-              <Input id="city" {...register('city')} />
-              <FieldError message={errors.city?.message} />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="state">{t.newArea.state}</Label>
-              <Select id="state" {...register('state')}>
-                {UF.map((uf) => (
-                  <option key={uf}>{uf}</option>
-                ))}
-              </Select>
-            </div>
-            <div className="space-y-1.5 sm:col-span-2">
-              <Label htmlFor="neighborhood">{t.newArea.neighborhood}</Label>
-              <Input id="neighborhood" {...register('neighborhood')} />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="area_m2">{t.newArea.area}</Label>
-              <Input id="area_m2" inputMode="decimal" {...register('area_m2')} />
-              <FieldError message={errors.area_m2 && t.newArea.errors.area} />
-            </div>
-            <div className="space-y-1.5 sm:col-span-3">
-              <Label htmlFor="land_type">{t.newArea.landType}</Label>
-              <Input id="land_type" {...register('land_type')} />
-            </div>
-            <fieldset className="space-y-2 sm:col-span-3">
-              <legend className="text-xs font-medium text-muted">{t.newArea.models}</legend>
-              <div className="flex flex-wrap gap-4">
-                {MODELS.map((m) => (
-                  <label key={m} className="flex items-center gap-2 text-sm">
-                    <input
-                      type="checkbox"
-                      value={m}
-                      className="accent-action"
-                      {...register('negotiation_models')}
-                    />
-                    {t.enums.negotiationModel[m]}
-                  </label>
-                ))}
-              </div>
-            </fieldset>
-            <div className="space-y-1.5 sm:col-span-3">
-              <Label htmlFor="negotiation_conditions">{t.newArea.conditions}</Label>
-              <Textarea id="negotiation_conditions" {...register('negotiation_conditions')} />
-            </div>
-            <div className="sm:col-span-3">
-              <FormAlert message={create.isError ? t.common.error : null} />
-              <Button type="submit" className="mt-2" disabled={create.isPending}>
-                {create.isPending ? t.newArea.submitting : t.newArea.submit}
-              </Button>
-            </div>
-          </form>
-        </Section>
-      )}
-    </div>
+    <Section title={t.newArea.title} description={t.newArea.body}>
+      <form
+        onSubmit={handleSubmit((v) => create.mutate(v))}
+        className="grid gap-4 sm:grid-cols-3"
+        noValidate
+      >
+        <div className="space-y-1.5 sm:col-span-2">
+          <Label htmlFor="city">{t.newArea.city}</Label>
+          <Input id="city" {...register('city')} />
+          <FieldError message={errors.city?.message} />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="state">{t.newArea.state}</Label>
+          <Select id="state" {...register('state')}>
+            {UF.map((uf) => (
+              <option key={uf}>{uf}</option>
+            ))}
+          </Select>
+        </div>
+        <div className="space-y-1.5 sm:col-span-2">
+          <Label htmlFor="neighborhood">{t.newArea.neighborhood}</Label>
+          <Input id="neighborhood" {...register('neighborhood')} />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="area_m2">{t.newArea.area}</Label>
+          <Input id="area_m2" inputMode="decimal" {...register('area_m2')} />
+          <FieldError message={errors.area_m2 && t.newArea.errors.area} />
+        </div>
+        <div className="space-y-1.5 sm:col-span-3">
+          <Label htmlFor="land_type">{t.newArea.landType}</Label>
+          <Input id="land_type" {...register('land_type')} />
+        </div>
+        <fieldset className="space-y-2 sm:col-span-3">
+          <legend className="text-xs font-medium text-muted">{t.newArea.models}</legend>
+          <div className="flex flex-wrap gap-4">
+            {MODELS.map((m) => (
+              <label key={m} className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  value={m}
+                  className="accent-action"
+                  {...register('negotiation_models')}
+                />
+                {t.enums.negotiationModel[m]}
+              </label>
+            ))}
+          </div>
+        </fieldset>
+        <div className="space-y-1.5 sm:col-span-3">
+          <Label htmlFor="negotiation_conditions">{t.newArea.conditions}</Label>
+          <Textarea id="negotiation_conditions" {...register('negotiation_conditions')} />
+        </div>
+        <div className="sm:col-span-3">
+          <FormAlert message={create.isError ? t.common.error : null} />
+          <Button type="submit" className="mt-2" disabled={create.isPending}>
+            {create.isPending ? t.newArea.submitting : t.newArea.submit}
+          </Button>
+        </div>
+      </form>
+    </Section>
   );
 }

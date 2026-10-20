@@ -47,6 +47,12 @@ insert into public.distributions (opportunity_id, recipient_org_id, recipient_us
 insert into public.distribution_events (distribution_id, event)
 select id, 'sent' from public.distributions where idempotency_key = 'k1';
 
+-- Fase 2: corretor aceita o termo-mestre antes de cadastrar área.
+select public.accept_agreement('broker_partnership')
+  from (select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000003","role":"authenticated"}', true)) x;
+select public.accept_agreement('broker_partnership')
+  from (select set_config('request.jwt.claims', '{"sub":"a0000000-0000-0000-0000-000000000004","role":"authenticated"}', true)) x;
+
 -- Atalho para trocar de usuário.
 create function pg_temp.as_user(p_id text) returns void language sql as $$
   select set_config('request.jwt.claims', json_build_object('sub', p_id, 'role', 'authenticated')::text, true);
@@ -121,8 +127,8 @@ select throws_ok($$ update public.opportunities set status = 'qualified' where i
   '42501', null, 'corretor: não muda status');
 select lives_ok($$ update public.opportunities set zoning = 'Mista' where id = 'c0000000-0000-0000-0000-000000000002' $$,
   'corretor: edita dados da própria área captada');
-select throws_ok($$ select * from public.get_opportunity_sensitive('c0000000-0000-0000-0000-000000000002') $$,
-  '42501', null, 'corretor: dado sensível segue bloqueado (Fase 5)');
+select lives_ok($$ select * from public.get_opportunity_sensitive('c0000000-0000-0000-0000-000000000002') $$,
+  'corretor responsável: lê o dado sensível da própria área (Fase 2, D020)');
 select lives_ok($$ update public.brokers set creci_number = '111-G' where user_id = 'a0000000-0000-0000-0000-000000000003' $$,
   'corretor: corrige o CRECI');
 select is((select verification_status::text from public.brokers where user_id = 'a0000000-0000-0000-0000-000000000003'),

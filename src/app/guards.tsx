@@ -24,7 +24,10 @@ export function RequireAuth({ children }: { children: ReactNode }) {
 
 /** Conta pendente/rejeitada/suspensa só acessa "Minha conta" (D014). Banco aplica o mesmo via RLS. */
 export function RequireApproved({ children }: { children: ReactNode }) {
-  const { isApproved } = useAuth();
+  const { isApproved, isPlatformAdmin, profile } = useAuth();
+  // Proprietário não navega oportunidades: vê só as próprias áreas (D021).
+  if (profile?.signup_kind === 'owner' && !isPlatformAdmin)
+    return <Navigate to="/minhas-areas" replace />;
   if (!isApproved) return <Navigate to="/conta" replace />;
   return <>{children}</>;
 }

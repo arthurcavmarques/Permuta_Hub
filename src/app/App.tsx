@@ -7,6 +7,7 @@ import { RequireApproved, RequireAuth, RequirePlatformAdmin } from '@/app/guards
 import { OpportunitiesPage } from '@/features/opportunities/OpportunitiesPage';
 import { DossierPage } from '@/features/opportunities/DossierPage';
 import { NewOpportunityPage } from '@/features/opportunities/NewOpportunityPage';
+import { EditorPage } from '@/features/opportunities/editor/EditorPage';
 import { SignupPage } from '@/features/account/SignupPage';
 import { AccountPage } from '@/features/account/AccountPage';
 import { OrganizationPage } from '@/features/organizations/OrganizationPage';
@@ -18,6 +19,16 @@ import {
   AdminOutboxPage,
   AdminUsersPage,
 } from '@/features/admin/AdminPages';
+import { AdminTermsPage } from '@/features/admin/TermsPage';
+import {
+  AdminAreaPage,
+  AdminAreasPage,
+  AdminLeadsPage,
+  AdminLogsPage,
+  BrokerLeadsPage,
+} from '@/features/admin/CurationPages';
+import { OwnerLeadPage } from '@/features/owner/OwnerLeadPage';
+import { OwnerAreasPage } from '@/features/owner/OwnerAreasPage';
 
 export function App() {
   useEffect(() => {
@@ -28,6 +39,8 @@ export function App() {
       <Route path="/entrar" element={<LoginPage />} />
       <Route path="/cadastro" element={<SignupPage />} />
       <Route path="/convite/:token" element={<InvitationPage />} />
+      {/* Porta do proprietário: pública (lead anônimo) ou com conta de proprietário (D021). */}
+      <Route path="/cadastrar-area" element={<OwnerLeadPage />} />
       <Route
         element={
           <RequireAuth>
@@ -38,6 +51,7 @@ export function App() {
         {/* Acessível a qualquer conta, inclusive pendente (D014). */}
         <Route path="/conta" element={<AccountPage />} />
         <Route path="/organizacao/:id" element={<OrganizationPage />} />
+        <Route path="/minhas-areas" element={<OwnerAreasPage />} />
 
         <Route
           path="/oportunidades"
@@ -64,6 +78,22 @@ export function App() {
           }
         />
         <Route
+          path="/areas/leads"
+          element={
+            <RequireApproved>
+              <BrokerLeadsPage />
+            </RequireApproved>
+          }
+        />
+        <Route
+          path="/areas/:id/editar"
+          element={
+            <RequireApproved>
+              <EditorPage />
+            </RequireApproved>
+          }
+        />
+        <Route
           path="/admin"
           element={
             <RequirePlatformAdmin>
@@ -71,10 +101,15 @@ export function App() {
             </RequirePlatformAdmin>
           }
         >
-          <Route index element={<Navigate to="usuarios" replace />} />
+          <Route index element={<Navigate to="leads" replace />} />
+          <Route path="leads" element={<AdminLeadsPage />} />
+          <Route path="areas" element={<AdminAreasPage />} />
+          <Route path="areas/:id" element={<AdminAreaPage />} />
+          <Route path="logs" element={<AdminLogsPage />} />
           <Route path="usuarios" element={<AdminUsersPage />} />
           <Route path="creci" element={<AdminCreciPage />} />
           <Route path="organizacoes" element={<AdminOrganizationsPage />} />
+          <Route path="termos" element={<AdminTermsPage />} />
           <Route path="caixa-de-saida" element={<AdminOutboxPage />} />
         </Route>
       </Route>

@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, FileDown } from 'lucide-react';
+import { ArrowLeft, FileDown, Pencil } from 'lucide-react';
 import { t } from '@/i18n/pt-BR';
 import { PRODUCT_NAME } from '@/config/product';
 import {
@@ -11,13 +11,15 @@ import {
   formatMoneyCompact,
 } from '@/lib/format';
 import { ApproxLocationMap } from '@/lib/map';
-import { useAuth } from '@/lib/auth';
 import { Button } from '@/components/ui/button';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { FullPageMessage } from '@/app/guards';
 import { Wordmark } from '@/app/AppShell';
 import { useBlindMedia, useBlindOpportunity } from './api';
 import { SensitivePanel } from './SensitivePanel';
+import { useCanEdit } from './editor/api';
+import { useAuth } from '@/lib/auth';
+import { supabase } from '@/lib/supabase';
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -45,9 +47,10 @@ function KeyFigure({ label, value }: { label: string; value: string | null }) {
 
 export function DossierPage() {
   const { id = '' } = useParams();
-  const { isPlatformAdmin } = useAuth();
   const { data: o, isLoading, isError } = useBlindOpportunity(id);
   const media = useBlindMedia(id);
+  const canEdit = useCanEdit(id);
+  const { session } = useAuth();
 
   if (isLoading) return <FullPageMessage title={t.common.loading} />;
   if (isError || !o) return <FullPageMessage title={t.dossier.notFound} />;
@@ -64,10 +67,31 @@ export function DossierPage() {
             {t.common.back}
           </Link>
         </Button>
-        <Button variant="secondary" size="sm" onClick={() => window.print()}>
-          <FileDown className="h-4 w-4" />
-          {t.dossier.printPdf}
-        </Button>
+        <div className="flex gap-2">
+          {canEdit.data && (
+            <Button asChild variant="secondary" size="sm">
+              <Link to={`/areas/${id}/editar`}>
+                <Pencil className="h-4 w-4" />
+                {t.editor.edit}
+              </Link>
+            </Button>
+          )}
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={async () => {
+              // Registra quem gerou o PDF antes de abrir a impressão (falha no log não impede o PDF).
+              await supabase.rpc('log_dossier_print', { p_opportunity_id: id }).then(
+                () => undefined,
+                () => undefined,
+              );
+              window.print();
+            }}
+          >
+            <FileDown className="h-4 w-4" />
+            {t.dossier.printPdf}
+          </Button>
+        </div>
       </div>
 
       {/* Cabeçalho: dados-chave primeiro (o WhatsApp traz o comprador direto para cá). */}
@@ -202,16 +226,28 @@ export function DossierPage() {
           {o.negotiation_conditions && <p className="mt-3">{o.negotiation_conditions}</p>}
         </Section>
 
-        {/* Nunca vai para o PDF: o PDF é sempre a versão cega. */}
-        {isPlatformAdmin && (
-          <div className="print:hidden">
-            <SensitivePanel opportunityId={o.id} />
-          </div>
-        )}
+        {/* Nunca vai para o PDF: o PDF é sempre a versão cega. O painel se esconde sozinho
+            para quem não pode ler nem aceitar o termo (sensitive_access_state). */}
+        <div className="print:hidden">
+          <SensitivePanel opportunityId={o.id} />
+        </div>
 
         <footer className="mt-6 border-t border-border pt-4 text-xs text-muted">
           {PRODUCT_NAME} · {t.dossier.footer(formatDate(new Date()))}
         </footer>
+      </div>
+
+      {/* Rodapé que se repete em cada página do PDF: marca, MD e quem gerou (rastreabilidade). */}
+      <div
+        aria-hidden
+        data-testid="print-footer"
+        className="hidden print:fixed print:inset-x-0 print:bottom-0 print:flex print:items-center print:justify-between print:border-t print:border-accent print:bg-surface print:pt-1 print:text-[9px] print:text-muted"
+      >
+        <span className="font-semibold text-primary">{PRODUCT_NAME}</span>
+        <span>
+          {o.memorial_number} · {t.dossier.blindBadge}
+        </span>
+        <span>{t.dossier.printedFor(session?.user.email ?? '', formatDate(new Date()))}</span>
       </div>
     </article>
   );
