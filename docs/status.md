@@ -1,7 +1,10 @@
 # Status
 
 **Fase atual:** 2 — Captação pelas duas portas, qualificação, verificação cadastral e aceite de termo:
-**implementada no branch `fase-2` (2026-10-19), aguardando OK do Arthur/Felipe para merge e deploy.**
+**mergeada em `main` (`b3ff83d`, 2026-10-20, autorizada pelo Arthur); deploy BLOQUEADO** — o projeto Supabase
+de produção não responde (DNS de `eiclbivogbpmllobawzd.supabase.co` não existe: provável pausa do plano gratuito
+por inatividade, D022). O site no ar segue com o frontend da Fase 1, sem backend. Para destravar: Arthur
+restaura o projeto no painel do Supabase e roda `npx supabase login` (necessário para `functions deploy`).
 Escopo ampliado pela revisão de requisitos (D019–D021); plano completo atualizado (revisão 2026-10-19).
 **Estimativa:** 90–110 h de trabalho humano. **Realizado:** uma sessão de ~3 h de relógio com o Claude
 (ordem de grandeza só; não se compara bem com horas humanas).
@@ -82,6 +85,10 @@ termo da área;
 "bug crítico" descartado; vídeos de 14–15/10 ignorados; Supabase segue no plano gratuito (D022); `.claude/` e o
 plano completo fora do git (D023); perguntas ao Fábio anotadas; canal CRECI anotado (L1). OK para a Fase 2.
 Fase 2 implementada na mesma sessão (blocos 2.1–2.6), testes verdes; **não** mergeada nem publicada.
+
+**Sessão 2026-10-20:** Arthur autorizou merge e deploy. Suíte local verde de novo (pgTAP 318, Vitest 117,
+typecheck, lint); merge `b3ff83d` em `main`, `fase-2` enviada ao GitHub. Deploy não feito: banco de produção
+inacessível (projeto pausado?) e Supabase CLI sem login. Nada foi aplicado em produção.
 
 ## Histórico — Fase 1 (concluída, em produção 2026-10-10)
 **Estimativa:** 50–60 h. **Realizado:** uma sessão de ~1 h de relógio (2026-10-10) com o Claude.
