@@ -1,10 +1,8 @@
 # Status
 
 **Fase atual:** 2 — Captação pelas duas portas, qualificação, verificação cadastral e aceite de termo:
-**mergeada em `main` (`b3ff83d`, 2026-10-20, autorizada pelo Arthur); deploy BLOQUEADO** — o projeto Supabase
-de produção não responde (DNS de `eiclbivogbpmllobawzd.supabase.co` não existe: provável pausa do plano gratuito
-por inatividade, D022). O site no ar segue com o frontend da Fase 1, sem backend. Para destravar: Arthur
-restaura o projeto no painel do Supabase e roda `npx supabase login` (necessário para `functions deploy`).
+**mergeada em `main` (`b3ff83d`, 2026-10-20) e em produção desde 2026-10-21** (migrations, Edge Function
+`registry-lookup` e frontend; ver "Deploy 2026-10-21" abaixo).
 Escopo ampliado pela revisão de requisitos (D019–D021); plano completo atualizado (revisão 2026-10-19).
 **Estimativa:** 90–110 h de trabalho humano. **Realizado:** uma sessão de ~3 h de relógio com o Claude
 (ordem de grandeza só; não se compara bem com horas humanas).
@@ -77,9 +75,11 @@ termo da área;
 - Respostas do Fábio (`docs/perguntas à fabio.md`), sobretudo 1–4 (padrões seguros da Fase 2 já no ar).
 - Texto do advogado para os 5 termos (trocar pela aba **Termos**, sem deploy) e razão social/CNPJ da plataforma
   (`platform_settings.platform_legal_name` / `platform_document_id`).
-- OK para merge e **deploy**, que agora tem um passo a mais: `supabase db push` + `supabase functions deploy
-  registry-lookup` + `npm run deploy` (runbook 6.1.3). Os corretores aprovados em produção passam a ter
-  reverificação agendada em 12 meses.
+- ~~OK para merge e deploy~~ feito (2026-10-20/21). Deploy agora tem um passo a mais: `supabase db push` +
+  `supabase functions deploy registry-lookup` + `npm run deploy` (runbook 6.1.3). Os corretores aprovados em
+  produção passam a ter reverificação agendada em 12 meses.
+- Conferir em produção, com as contas reais, o roteiro "Como testar em 5 minutos" (não foi gravado nada de teste
+  na produção).
 
 **Sessão 2026-10-19:** validação dos requisitos do Continuidade 2.0 com a Bruna (PO). Respostas do Arthur:
 "bug crítico" descartado; vídeos de 14–15/10 ignorados; Supabase segue no plano gratuito (D022); `.claude/` e o
@@ -89,6 +89,14 @@ Fase 2 implementada na mesma sessão (blocos 2.1–2.6), testes verdes; **não**
 **Sessão 2026-10-20:** Arthur autorizou merge e deploy. Suíte local verde de novo (pgTAP 318, Vitest 117,
 typecheck, lint); merge `b3ff83d` em `main`, `fase-2` enviada ao GitHub. Deploy não feito: banco de produção
 inacessível (projeto pausado?) e Supabase CLI sem login. Nada foi aplicado em produção.
+
+**Deploy 2026-10-21:** Arthur restaurou o projeto pausado (dados intactos: 25 oportunidades, 5 perfis,
+11 distribuições) e fez `supabase login`. Backup prévio (dados + schema) em
+`import-reports/backup-prod-pre-fase2-*.sql` (local, fora do git); `db push` das 7 migrations `20261019*`;
+`registry-lookup` publicada; frontend publicado (versão Cloudflare `69a53c42`). Verificado: migrations local =
+remoto, cadeias de hash íntegras nas 5 tabelas, 5 modelos de termo carregados, API anônima recebe 42501 em todas as
+tabelas novas (e em `opportunity_sensitive`/`profiles`) e só lê `consent_texts`, função exige login (401), `/`,
+`/login` e `/cadastrar-area` respondem 200 com o bundle novo. A senha do banco ainda é a exposta em 2026-10-10.
 
 ## Histórico — Fase 1 (concluída, em produção 2026-10-10)
 **Estimativa:** 50–60 h. **Realizado:** uma sessão de ~1 h de relógio (2026-10-10) com o Claude.
