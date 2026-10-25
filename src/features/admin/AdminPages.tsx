@@ -43,6 +43,8 @@ export function AdminLayout() {
   const tabs = [
     { to: '/admin/leads', label: t.admin.tabs.leads },
     { to: '/admin/areas', label: t.admin.tabs.areas },
+    { to: '/admin/publicaveis', label: t.admin.tabs.publishable },
+    { to: '/admin/importacao', label: t.admin.tabs.import },
     { to: '/admin/usuarios', label: t.admin.tabs.users },
     { to: '/admin/creci', label: t.admin.tabs.creci },
     { to: '/admin/organizacoes', label: t.admin.tabs.organizations },

@@ -6,7 +6,11 @@ import { decodeText, parseCsv } from './table';
 
 const mapping = mappingJson as unknown as LandbankMapping;
 const fixture = () =>
-  parseCsv(decodeText(readFileSync(resolve(import.meta.dirname, '../../../scripts/fixtures/landbank-sujo.csv'))));
+  parseCsv(
+    decodeText(
+      readFileSync(resolve(import.meta.dirname, '../../../scripts/fixtures/landbank-sujo.csv')),
+    ),
+  );
 
 describe('normalizeMemorial', () => {
   it.each([

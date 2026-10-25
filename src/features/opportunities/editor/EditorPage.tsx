@@ -18,6 +18,7 @@ import { FullPageMessage } from '@/app/guards';
 import { AgreementCard } from '@/features/agreements/AgreementCard';
 import { useHasAgreement } from '@/features/agreements/api';
 import type { NegotiationModel } from '../types';
+import { useAssetTypes } from '../asset-types';
 import {
   documentUrl,
   useCanEdit,
@@ -115,6 +116,7 @@ const toNumber = (s: string) => (s.trim() ? Number(s.replace(',', '.')) : null);
 
 const detailsSchema = z.object({
   title_blind: z.string().trim().max(120),
+  asset_type: z.string(),
   land_type: z.string().trim(),
   area_m2: z
     .string()
@@ -137,6 +139,7 @@ type DetailsValues = z.infer<typeof detailsSchema>;
 
 function DetailsSection({ o }: { o: EditableOpportunity }) {
   const update = useUpdateOpportunity(o.id);
+  const assetTypes = useAssetTypes();
   const [saved, setSaved] = useState(false);
   const {
     register,
@@ -146,6 +149,7 @@ function DetailsSection({ o }: { o: EditableOpportunity }) {
     resolver: zodResolver(detailsSchema),
     defaultValues: {
       title_blind: o.title_blind ?? '',
+      asset_type: o.asset_type ?? '',
       land_type: o.land_type ?? '',
       area_m2: o.area_m2?.toString() ?? '',
       city: o.city ?? '',
@@ -170,6 +174,7 @@ function DetailsSection({ o }: { o: EditableOpportunity }) {
     update.mutate(
       {
         title_blind: v.title_blind || null,
+        asset_type: v.asset_type || null,
         land_type: v.land_type || null,
         area_m2: toNumber(v.area_m2),
         city: v.city,
@@ -216,6 +221,17 @@ function DetailsSection({ o }: { o: EditableOpportunity }) {
         </div>
         {field('neighborhood', t.newArea.neighborhood, { span: 'sm:col-span-2' })}
         {field('area_m2', e.details.area)}
+        <div className="space-y-1.5">
+          <Label htmlFor="f-asset_type">{e.details.assetType}</Label>
+          <Select id="f-asset_type" {...register('asset_type')}>
+            <option value="">{e.details.assetTypeNone}</option>
+            {(assetTypes.data ?? []).map((a) => (
+              <option key={a.value} value={a.value}>
+                {a.label}
+              </option>
+            ))}
+          </Select>
+        </div>
         {field('land_type', t.newArea.landType)}
         {field('zoning', t.dossier.zoning)}
         {field('coefficient', t.dossier.coefficient)}

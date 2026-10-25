@@ -9,7 +9,14 @@ describe('parseBuyers', () => {
       ['BASE DE COMPRADORES (FICTÍCIA)'],
       [],
       ['Empresa', 'CNPJ', 'Contato', 'Celular', 'E-mail', 'Coluna X'],
-      ['Incorporadora Ômega', '11.222.333/0001-81', 'Ana', '(51) 90000-0000', 'ANA@OMEGA.invalid', 'x'],
+      [
+        'Incorporadora Ômega',
+        '11.222.333/0001-81',
+        'Ana',
+        '(51) 90000-0000',
+        'ANA@OMEGA.invalid',
+        'x',
+      ],
       ['Construtora Sem CNPJ', '123', null, null, 'nao-e-email', null],
       [null, '11.222.333/0001-81', 'Sem empresa', null, null, null],
       [],
@@ -24,7 +31,11 @@ describe('parseBuyers', () => {
   });
 
   it('normaliza CNPJ e e-mail; inválidos viram aviso, não erro', () => {
-    expect(r.valid[0]).toMatchObject({ cnpj: '11222333000181', email: 'ana@omega.invalid', warnings: [] });
+    expect(r.valid[0]).toMatchObject({
+      cnpj: '11222333000181',
+      email: 'ana@omega.invalid',
+      warnings: [],
+    });
     expect(r.valid[1]).toMatchObject({ cnpj: null, email: null });
     expect(r.valid[1].warnings).toHaveLength(2);
   });

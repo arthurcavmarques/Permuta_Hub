@@ -78,9 +78,13 @@ async function main() {
   if (result.already_imported_batch_id)
     console.log(`  ! este arquivo já foi importado no lote ${result.already_imported_batch_id}`);
   for (const r of parsed.rejected)
-    console.log(`  ✖ linha ${r.line}${r.memorial_number ? ` (${r.memorial_number})` : ''}: ${r.reason}`);
+    console.log(
+      `  ✖ linha ${r.line}${r.memorial_number ? ` (${r.memorial_number})` : ''}: ${r.reason}`,
+    );
   for (const r of result.rows.filter((x) => x.conflicts.length))
-    console.log(`  ⚠ ${r.memorial_number}: conflito em ${r.conflicts.map((x) => x.field).join(', ')}`);
+    console.log(
+      `  ⚠ ${r.memorial_number}: conflito em ${r.conflicts.map((x) => x.field).join(', ')}`,
+    );
   for (const r of result.rows.filter((x) => x.warnings.length))
     console.log(`  ! linha ${r.line} (${r.memorial_number}): ${r.warnings.join('; ')}`);
   console.log(`\nRelatório completo: ${path}\n`);

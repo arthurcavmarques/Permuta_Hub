@@ -64,7 +64,8 @@ export function parseBuyers(rows: Cell[][], mapping: BuyersMapping): BuyersParse
   for (let i = h.line + 1; i < rows.length; i++) {
     const line = i + 1;
     const row = rows[i] ?? [];
-    const get = (field: string) => (h.index[field] === undefined ? null : cleanText(row[h.index[field]]));
+    const get = (field: string) =>
+      h.index[field] === undefined ? null : cleanText(row[h.index[field]]);
     if (row.every((c) => cleanText(c) === null)) {
       result.ignored.push({ line, reason: 'linha vazia' });
       continue;

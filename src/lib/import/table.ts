@@ -44,13 +44,20 @@ function extension(fileName: string) {
 }
 
 /** Lê CSV/XLSX a partir dos bytes (navegador e scripts). O ExcelJS só é carregado quando o arquivo é XLSX. */
-export async function readTableBytes(bytes: Uint8Array, fileName: string, sheetName?: string): Promise<Table> {
+export async function readTableBytes(
+  bytes: Uint8Array,
+  fileName: string,
+  sheetName?: string,
+): Promise<Table> {
   const ext = extension(fileName);
-  if (ext === '.csv' || ext === '.txt') return { rows: parseCsv(decodeText(bytes)), sheets: [], sheet: null };
+  if (ext === '.csv' || ext === '.txt')
+    return { rows: parseCsv(decodeText(bytes)), sheets: [], sheet: null };
   if (ext === '.xlsx') {
     const { default: Excel } = await import('exceljs');
     const wb = new Excel.Workbook();
-    await wb.xlsx.load(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer);
+    await wb.xlsx.load(
+      bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer,
+    );
     const sheets = wb.worksheets.map((w) => w.name);
     const ws = sheetName ? wb.getWorksheet(sheetName) : wb.worksheets[0];
     if (!ws) throw new Error(`Aba "${sheetName}" não encontrada. Abas: ${sheets.join(', ')}`);
@@ -62,7 +69,9 @@ export async function readTableBytes(bytes: Uint8Array, fileName: string, sheetN
     });
     return { rows: Array.from(rows, (r) => r ?? []), sheets, sheet: ws.name };
   }
-  throw new Error(`Formato não suportado: ${ext || 'sem extensão'}. Use .csv ou .xlsx (salve .xls como .xlsx).`);
+  throw new Error(
+    `Formato não suportado: ${ext || 'sem extensão'}. Use .csv ou .xlsx (salve .xls como .xlsx).`,
+  );
 }
 
 /** SHA-256 do arquivo (identifica o arquivo no lote e avisa reimportação). */
