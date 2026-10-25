@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { toCsv } from './curation-api';
+import { toCsv } from './csv';
 
 describe('toCsv', () => {
   it('usa ponto e vírgula, BOM e escapa aspas, separador e quebra de linha', () => {
