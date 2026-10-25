@@ -40,7 +40,7 @@ jobs:
           cache: npm
       - run: npm ci
       - name: Sobe Supabase local
-        run: npx supabase start -x studio,imgproxy,inbucket,edge-runtime,logflare,vector,supavisor
+        run: npx supabase start -x studio,imgproxy,inbucket,logflare,vector,supavisor
       - name: Variáveis do frontend a partir do Supabase local
         run: |
           npx supabase status -o env > supabase.env

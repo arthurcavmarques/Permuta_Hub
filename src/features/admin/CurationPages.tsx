@@ -4,6 +4,7 @@ import { Download, ExternalLink, Pencil } from 'lucide-react';
 import { t } from '@/i18n/pt-BR';
 import { cn } from '@/lib/utils';
 import { formatArea, formatDate } from '@/lib/format';
+import { toCsv } from '@/lib/csv';
 import { OpportunitiesMap } from '@/lib/map';
 import { Button } from '@/components/ui/button';
 import { Input, Label, Select, Textarea } from '@/components/ui/form';
@@ -14,7 +15,6 @@ import { useBlindOpportunities } from '@/features/opportunities/api';
 import type { MandateStatus, OpportunityStatus } from '@/features/opportunities/types';
 import type { LeadStatus } from '@/features/owner/api';
 import {
-  toCsv,
   useAccessLog,
   useAddNote,
   useAdminAreas,
