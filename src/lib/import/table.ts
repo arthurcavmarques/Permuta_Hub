@@ -5,7 +5,7 @@ import type { Cell } from './landbank';
 /** CSV exportado do Excel brasileiro costuma vir em Windows-1252; tenta UTF-8 primeiro. */
 export function decodeText(bytes: Uint8Array): string {
   try {
-    return new TextDecoder('utf-8', { fatal: true }).decode(bytes).replace(/^﻿/, '');
+    return new TextDecoder('utf-8', { fatal: true }).decode(bytes).replace(/^\uFEFF/, '');
   } catch {
     return new TextDecoder('windows-1252').decode(bytes);
   }
