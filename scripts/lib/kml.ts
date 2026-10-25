@@ -2,8 +2,8 @@ import { DOMParser } from '@xmldom/xmldom';
 import { kml } from '@tmcw/togeojson';
 import JSZip from 'jszip';
 import type { Feature, Geometry } from 'geojson';
-import { normalizeMemorial } from './landbank';
-import { cleanText } from './text';
+import { normalizeMemorial } from '../../src/lib/import/landbank';
+import { cleanText } from '../../src/lib/import/text';
 
 export interface KmlFeature {
   name: string | null;

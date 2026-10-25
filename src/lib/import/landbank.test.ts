@@ -1,12 +1,12 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import mappingJson from '../mappings/landbank.json';
+import mappingJson from '../../../scripts/mappings/landbank.json';
 import { normalizeMemorial, parseLandbank, type LandbankMapping } from './landbank';
-import { decodeText, parseCsv } from './read-table';
+import { decodeText, parseCsv } from './table';
 
 const mapping = mappingJson as unknown as LandbankMapping;
 const fixture = () =>
-  parseCsv(decodeText(readFileSync(resolve(import.meta.dirname, '../fixtures/landbank-sujo.csv'))));
+  parseCsv(decodeText(readFileSync(resolve(import.meta.dirname, '../../../scripts/fixtures/landbank-sujo.csv'))));
 
 describe('normalizeMemorial', () => {
   it.each([
@@ -43,7 +43,7 @@ describe('parseLandbank (planilha suja)', () => {
   it('mapeia status, inclusive com acento e texto livre', () => {
     expect(r.valid[0].opportunity.status).toBe('negotiating');
     expect(r.valid[1].opportunity.status).toBe('qualified');
-    expect(r.valid[2].opportunity.status).toBe('captured');
+    expect(r.valid[2].opportunity.status).toBeNull(); // não mapeado: o banco usa o padrão só em área nova
     expect(r.valid[2].warnings.join()).toContain('status maluco');
   });
 
@@ -91,6 +91,40 @@ describe('parseLandbank (planilha suja)', () => {
 
 describe('decodeText', () => {
   it('lê CSV em Windows-1252 (Excel BR)', () => {
-    expect(decodeText(Buffer.from([0xc1, 0x72, 0x65, 0x61]))).toBe('Área');
+    expect(decodeText(new Uint8Array([0xc1, 0x72, 0x65, 0x61]))).toBe('Área');
+  });
+});
+
+describe('parseLandbank — regras da Fase 2B', () => {
+  const r = parseLandbank(fixture(), mapping);
+
+  it('deduz o tipo de ativo do "tipo de terreno" quando o mapa reconhece (D026)', () => {
+    expect(r.valid.map((v) => v.opportunity.asset_type)).toEqual(['terreno', 'gleba', 'terreno']);
+  });
+
+  it('não aplica padrões (cidade, UF): o banco aplica só em área nova', () => {
+    expect(r.valid[0].opportunity.city).toBeNull();
+    expect(r.valid[0].opportunity.state).toBeNull();
+  });
+
+  it('extra sem data nem linha: reimportar o mesmo arquivo não parece mudança', () => {
+    expect(r.valid[0].opportunity.extra.landbank).toEqual({
+      status_raw: 'Em negociação',
+      commercial_progress: 'Proposta enviada em ago',
+    });
+    expect(parseLandbank(fixture(), mapping).valid).toEqual(r.valid);
+  });
+
+  it('tipo de ativo em coluna própria e não reconhecido vira aviso', () => {
+    const p = parseLandbank(
+      [
+        ['MD', 'Tipo de ativo', 'Modelo de negociação'],
+        ['7', 'Nave espacial', 'Venda / Permuta'],
+      ],
+      mapping,
+    );
+    expect(p.valid[0].opportunity.asset_type).toBeNull();
+    expect(p.valid[0].warnings.join()).toContain('Nave espacial');
+    expect(p.valid[0].opportunity.negotiation_models).toEqual(['sale', 'swap']);
   });
 });

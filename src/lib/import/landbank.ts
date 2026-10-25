@@ -18,7 +18,10 @@ export interface LandbankMapping {
   columns: Record<string, string[]>;
   sensitive_fields: string[];
   status_map: Record<string, OpportunityStatus>;
+  /** Tipo de ativo (D026): texto da planilha → valor de platform_settings.asset_types. */
+  asset_type_map?: Record<string, string>;
   negotiation_model_map: Record<string, NegotiationModel>;
+  /** Aplicados pelo banco só em área nova: reimportar nunca sobrescreve com padrão. */
   defaults: { city: string; state: string; status: OpportunityStatus };
 }
 
@@ -27,12 +30,13 @@ export type Cell = string | number | null | undefined;
 export interface ParsedOpportunity {
   opportunity: {
     memorial_number: string;
-    status: OpportunityStatus;
+    status: OpportunityStatus | null;
+    asset_type: string | null;
     land_type: string | null;
     area_m2: number | null;
-    city: string;
+    city: string | null;
     neighborhood: string | null;
-    state: string;
+    state: string | null;
     zoning: string | null;
     coefficient: number | null;
     asking_value: number | null;
@@ -105,17 +109,39 @@ function mapStatus(
   raw: string | null,
   mapping: LandbankMapping,
   warnings: string[],
-): OpportunityStatus {
-  if (!raw) return mapping.defaults.status;
+): OpportunityStatus | null {
+  if (!raw) return null;
   const key = normalizeKey(raw);
   const hit =
     mapping.status_map[key] ??
     Object.entries(mapping.status_map).find(([k]) => key.includes(k))?.[1];
   if (!hit) {
-    warnings.push(`status "${raw}" não mapeado; usado "${mapping.defaults.status}"`);
-    return mapping.defaults.status;
+    warnings.push(
+      `status "${raw}" não mapeado; ignorado (área nova entra como "${mapping.defaults.status}")`,
+    );
+    return null;
   }
   return hit;
+}
+
+/** Tipo de ativo: coluna própria; sem ela, deduz do "tipo de terreno" quando o mapa reconhece. */
+export function mapAssetType(
+  raw: string | null,
+  landType: string | null,
+  mapping: LandbankMapping,
+  warnings: string[],
+): string | null {
+  const map = mapping.asset_type_map ?? {};
+  const find = (text: string) => {
+    const key = normalizeKey(text);
+    return map[key] ?? Object.entries(map).find(([k]) => key.includes(k))?.[1] ?? null;
+  };
+  if (raw) {
+    const hit = find(raw);
+    if (!hit) warnings.push(`tipo de ativo "${raw}" não mapeado; ignorado`);
+    return hit;
+  }
+  return landType ? find(landType) : null;
 }
 
 function mapModels(
@@ -130,7 +156,8 @@ function mapModels(
     if (hit) out.add(hit);
     else warnings.push(`modelo de negociação "${item}" não mapeado`);
   }
-  return [...out];
+  // Ordenado: a comparação com o valor da plataforma não depende da ordem na célula.
+  return [...out].sort();
 }
 
 export function parseLandbank(rows: Cell[][], mapping: LandbankMapping): LandbankParseResult {
@@ -205,13 +232,9 @@ export function parseLandbank(rows: Cell[][], mapping: LandbankMapping): Landban
     const progress = get('commercial_progress');
     const statusRaw = get('status');
 
+    // Sem data nem linha: o banco anota o lote; assim reimportar o mesmo arquivo não parece mudança.
     const extra: Record<string, unknown> = {
-      landbank: {
-        imported_at: new Date().toISOString(),
-        line,
-        status_raw: statusRaw,
-        commercial_progress: progress,
-      },
+      landbank: { status_raw: statusRaw, commercial_progress: progress },
     };
     // D006: histórico "oferecida para" preservado até virar distributions (legacy) na Fase 1.
     if (offered.length) extra.legacy_offered_to = { companies: offered, raw: offeredRaw };
@@ -231,11 +254,12 @@ export function parseLandbank(rows: Cell[][], mapping: LandbankMapping): Landban
       opportunity: {
         memorial_number: memorial,
         status: mapStatus(statusRaw, mapping, warnings),
+        asset_type: mapAssetType(get('asset_type'), get('land_type'), mapping, warnings),
         land_type: get('land_type'),
         area_m2: area,
-        city: get('city') ?? mapping.defaults.city,
+        city: get('city'),
         neighborhood: get('neighborhood'),
-        state: mapping.defaults.state,
+        state: null,
         zoning: get('zoning'),
         coefficient,
         asking_value: askingValue,

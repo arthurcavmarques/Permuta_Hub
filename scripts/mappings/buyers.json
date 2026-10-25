@@ -1,0 +1,12 @@
+{
+  "$comment": "Mapeamento padrão da base de compradores (sem opt-in: regra 8). A tela usa a cópia editável no banco.",
+  "header_search_rows": 15,
+  "columns": {
+    "organization_name": ["empresa", "nome da empresa", "razao social", "incorporadora", "construtora", "cliente", "comprador"],
+    "cnpj": ["cnpj"],
+    "contact_name": ["nome do contato", "contato", "responsavel", "nome"],
+    "phone": ["telefone", "celular", "whatsapp", "fone", "telefones"],
+    "email": ["e mail", "email"],
+    "notes": ["observacoes", "observacao", "obs", "notas"]
+  }
+}

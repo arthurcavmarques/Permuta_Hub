@@ -61,7 +61,7 @@ declare
   v_required jsonb := coalesce((select value from public.platform_settings where key = 'publishable_required_fields'), '[]');
   v_allow_no_mandate boolean := coalesce(public.setting_text('allow_distribution_without_mandate', 'false')::boolean, false);
 begin
-  if not (public.is_admin() or public.can_edit_opportunity(o.id)) then
+  if not (public.is_admin_or_backend() or public.can_edit_opportunity(o.id)) then
     raise exception 'Sem permissão' using errcode = '42501';
   end if;
   if v_required ? 'city' and coalesce(trim(o.city), '') = '' then return next 'missing_city'; end if;
