@@ -39,6 +39,16 @@ const c = t.admin.import;
 const STATUSES = Object.keys(t.enums.status) as OpportunityStatus[];
 const PREVIEW_ROWS = 50;
 const label = (f: string) => c.fields[f] ?? f;
+/** Avisos vêm do banco/parser com códigos (status, pendências): troca pelos rótulos da interface. */
+const humanize = (w: string) =>
+  w
+    .replace(/"([a-z_]+)"/g, (m, code: string) =>
+      code in t.enums.status ? `"${t.enums.status[code as OpportunityStatus]}"` : m,
+    )
+    .replace(
+      /(?<![a-z_])(missing_[a-z_]+|no_[a-z_]+|mandate_unknown|responsible_creci_not_verified)(?![a-z_])/g,
+      (m) => (t.curation.blockers as Record<string, string>)[m]?.toLowerCase() ?? m,
+    );
 const errorMessage = (err: unknown) => (err instanceof Error ? err.message : t.common.error);
 
 interface LoadedFile {
@@ -420,7 +430,9 @@ function ResultView({
 }) {
   const [all, setAll] = useState(false);
   const rows = all ? result.rows : result.rows.slice(0, PREVIEW_ROWS);
-  const counts = Object.entries(result.counts).filter(([k]) => k in c.counts);
+  const counts = (Object.keys(c.counts) as Array<keyof typeof c.counts>)
+    .filter((k) => k in result.counts)
+    .map((k) => [k, result.counts[k]] as const);
   const fieldList = (list: ImportRowResult['changes']) =>
     list
       .map((x) =>
@@ -438,7 +450,7 @@ function ResultView({
       <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {counts.map(([k, v]) => (
           <div key={k} className="rounded-md border border-border p-3" data-testid={`count-${k}`}>
-            <dt className="text-xs text-muted">{c.counts[k as keyof typeof c.counts]}</dt>
+            <dt className="text-xs text-muted">{c.counts[k]}</dt>
             <dd className="tabular text-xl font-semibold text-ink">{v}</dd>
           </div>
         ))}
@@ -459,13 +471,15 @@ function ResultView({
             {rows.map((r, i) => (
               <tr key={`${r.line}-${i}`} className={cn(r.conflicts.length > 0 && 'bg-warning-bg')}>
                 <td className="tabular px-3 py-2">{r.line}</td>
-                <td className="px-3 py-2">{r.memorial_number ?? '—'}</td>
+                <td className="whitespace-nowrap px-3 py-2">{r.memorial_number ?? '—'}</td>
                 <td className="px-3 py-2">
                   {c.actions[r.action as keyof typeof c.actions] ?? r.action}
                 </td>
                 <td className="px-3 py-2 text-xs">{fieldList(r.changes) || '—'}</td>
                 <td className="px-3 py-2 text-xs">{fieldList(r.conflicts) || '—'}</td>
-                <td className="px-3 py-2 text-xs text-muted">{r.warnings.join('; ') || '—'}</td>
+                <td className="px-3 py-2 text-xs text-muted">
+                  {r.warnings.map(humanize).join('; ') || '—'}
+                </td>
               </tr>
             ))}
           </tbody>
@@ -611,7 +625,9 @@ function BatchRow({ b }: { b: ImportBatch }) {
         conflitos: fieldsOf(r.conflicts ?? [])
           .map(label)
           .join(', '),
-        avisos: [...(r.warnings ?? []), ...(r.kept_fields ?? []).map(label)].join('; '),
+        avisos: [...(r.warnings ?? []).map(humanize), ...(r.kept_fields ?? []).map(label)].join(
+          '; ',
+        ),
       })),
       ...[...(report.parse?.rejected ?? []), ...(report.parse?.ignored ?? [])].map((x) => ({
         linha: x.line,
@@ -696,7 +712,7 @@ export function AdminPublishablePage() {
   const blockerLabel = (b: BlockerCode) => t.curation.blockers[b] ?? b;
   const published = all.filter((a) => a.published_at).length;
   const ready = all.filter((a) => !a.published_at && a.blockers.length === 0).length;
-  const blocked = all.filter((a) => a.blockers.length > 0).length;
+  const blocked = all.filter((a) => !a.published_at && a.blockers.length > 0).length;
   const top = Object.entries(
     all.reduce<Record<string, number>>((acc, a) => {
       for (const b of a.blockers) acc[b] = (acc[b] ?? 0) + 1;
@@ -707,7 +723,7 @@ export function AdminPublishablePage() {
   const rows = all.filter(
     (a) =>
       (!onlyImported || a.imported) &&
-      (!onlyBlocked || a.blockers.length > 0) &&
+      (!onlyBlocked || (!a.published_at && a.blockers.length > 0)) &&
       (!q ||
         a.memorial_number.toLowerCase().includes(q) ||
         `${a.neighborhood ?? ''} ${a.city ?? ''}`.toLowerCase().includes(q)),
@@ -820,7 +836,7 @@ export function AdminPublishablePage() {
             <tbody className="divide-y divide-border">
               {rows.map((a) => (
                 <tr key={a.id} data-testid={`publishable-${a.memorial_number}`}>
-                  <td className="px-3 py-2">
+                  <td className="whitespace-nowrap px-3 py-2">
                     <Link
                       to={`/admin/areas/${a.id}`}
                       className="font-medium text-action hover:underline"
@@ -837,12 +853,17 @@ export function AdminPublishablePage() {
                   </td>
                   <td className="px-3 py-2 text-xs">{t.enums.mandate[a.mandate_status]}</td>
                   <td className="px-3 py-2">
-                    {a.published_at ? (
-                      <Badge tone="success">{p.publishedBadge}</Badge>
-                    ) : a.blockers.length === 0 ? (
-                      <Badge tone="info">{p.none}</Badge>
+                    {a.blockers.length === 0 ? (
+                      <Badge tone={a.published_at ? 'success' : 'info'}>
+                        {a.published_at ? p.publishedBadge : p.none}
+                      </Badge>
                     ) : (
                       <ul className="flex flex-wrap gap-1">
+                        {a.published_at && (
+                          <li>
+                            <Badge tone="success">{p.publishedBadge}</Badge>
+                          </li>
+                        )}
                         {a.blockers.map((b) => (
                           <li key={b}>
                             <Badge tone="warning">{blockerLabel(b)}</Badge>

@@ -703,7 +703,7 @@ export const t = {
       total: 'Áreas ativas',
       published: 'Publicadas',
       ready: 'Prontas para publicar',
-      blocked: 'Com pendências',
+      blocked: 'Não publicadas com pendências',
       imported: 'Vieram da planilha',
       conflicts: 'Com conflito de importação',
       topBlockers: 'O que mais falta',

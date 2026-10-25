@@ -85,3 +85,6 @@ from ins;
 
 -- Histórico "oferecida para" vira distributions legadas (D018). Idempotente.
 select public.import_legacy_distributions();
+
+-- Tipo de ativo deixou de ter padrão (D026): as áreas de demonstração são terrenos urbanos.
+update public.opportunities set asset_type = 'terreno' where asset_type is null;
