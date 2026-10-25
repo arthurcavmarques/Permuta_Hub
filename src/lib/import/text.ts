@@ -13,7 +13,10 @@ export function normalizeKey(value: unknown): string {
 /** Texto limpo: sem espaços duplicados/invisíveis; vazio vira null. */
 export function cleanText(value: unknown): string | null {
   if (value === null || value === undefined) return null;
-  const s = String(value).replace(/[\u00a0\u200b\ufeff]/g, ' ').replace(/\s+/g, ' ').trim();
+  const s = String(value)
+    .replace(/[\u00a0\u200b\ufeff]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
   return s === '' || s === '-' || s === '—' ? null : s;
 }
 

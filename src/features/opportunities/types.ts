@@ -9,14 +9,14 @@ export type OpportunityStatus =
   | 'archived';
 
 export type NegotiationModel = 'sale' | 'swap' | 'partnership' | 'other';
-export type MandateStatus = 'exclusive' | 'non_exclusive' | 'being_obtained' | 'none';
+export type MandateStatus = 'exclusive' | 'non_exclusive' | 'being_obtained' | 'none' | 'unknown';
 
 /** Linha da view opportunities_blind: só campos seguros para o dossiê cego. */
 export interface BlindOpportunity {
   id: string;
   memorial_number: string;
   title: string;
-  asset_type: string;
+  asset_type: string | null;
   status: OpportunityStatus;
   land_type: string | null;
   area_m2_approx: number | null;

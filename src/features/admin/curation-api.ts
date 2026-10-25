@@ -136,6 +136,7 @@ export type BlockerCode =
   | 'missing_city'
   | 'missing_neighborhood'
   | 'missing_area'
+  | 'missing_asset_type'
   | 'missing_zoning'
   | 'missing_coefficient'
   | 'missing_asking_value'
@@ -146,7 +147,8 @@ export type BlockerCode =
   | 'responsible_creci_not_verified'
   | 'no_area_term'
   | 'no_owner_authorization'
-  | 'no_mandate';
+  | 'no_mandate'
+  | 'mandate_unknown';
 
 export function useBlockers(id: string) {
   return useQuery({
@@ -214,7 +216,15 @@ export function useCurateArea(id: string) {
 
 export interface OpportunityEvent {
   id: string;
-  kind: 'created' | 'status' | 'mandate' | 'responsible' | 'published' | 'unpublished' | 'note';
+  kind:
+    | 'created'
+    | 'status'
+    | 'mandate'
+    | 'responsible'
+    | 'published'
+    | 'unpublished'
+    | 'note'
+    | 'imported';
   from_value: string | null;
   to_value: string | null;
   note: string | null;

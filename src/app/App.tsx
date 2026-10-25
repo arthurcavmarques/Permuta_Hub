@@ -20,6 +20,7 @@ import {
   AdminUsersPage,
 } from '@/features/admin/AdminPages';
 import { AdminTermsPage } from '@/features/admin/TermsPage';
+import { AdminImportPage, AdminPublishablePage } from '@/features/admin/ImportPages';
 import {
   AdminAreaPage,
   AdminAreasPage,
@@ -105,6 +106,8 @@ export function App() {
           <Route path="leads" element={<AdminLeadsPage />} />
           <Route path="areas" element={<AdminAreasPage />} />
           <Route path="areas/:id" element={<AdminAreaPage />} />
+          <Route path="publicaveis" element={<AdminPublishablePage />} />
+          <Route path="importacao" element={<AdminImportPage />} />
           <Route path="logs" element={<AdminLogsPage />} />
           <Route path="usuarios" element={<AdminUsersPage />} />
           <Route path="creci" element={<AdminCreciPage />} />

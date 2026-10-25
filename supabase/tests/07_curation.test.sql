@@ -66,7 +66,7 @@ select is((select count(*)::int from public.opportunity_events e join public.own
 create temporary table t24 as select converted_opportunity_id as id from public.owner_leads;
 grant select on t24 to authenticated;
 select ok((select array_agg(b) from public.opportunity_publish_blockers((select id from t24)) b)
-          @> array['missing_zoning', 'missing_blind_photo', 'missing_geometry', 'no_area_term', 'no_owner_authorization', 'no_mandate'],
+          @> array['missing_asset_type', 'missing_zoning', 'missing_blind_photo', 'missing_geometry', 'no_area_term', 'no_owner_authorization', 'no_mandate'],
   'diz o que falta para publicar');
 select throws_ok($$ select public.publish_opportunity((select id from t24)) $$, '23514', null, 'com pendências, não publica');
 select throws_ok($$ update public.opportunities set status = 'qualified' where id = (select id from t24) $$, '23514', null,
@@ -75,7 +75,7 @@ select throws_ok($$ select public.curate_opportunity((select id from t24), p_sta
   'nem pulando para distribuição');
 
 -- Completa o dossiê (como curadoria, que também edita).
-select lives_ok($$ update public.opportunities set zoning = 'Mista' where id = (select id from t24) $$, 'curadoria completa o zoneamento');
+select lives_ok($$ update public.opportunities set zoning = 'Mista', asset_type = 'terreno' where id = (select id from t24) $$, 'curadoria completa zoneamento e tipo de ativo (D026)');
 select lives_ok($$ select public.set_opportunity_geometry_geojson((select id from t24),
   '{"type":"Point","coordinates":[-51.22,-30.05]}') $$, 'curadoria marca a localização');
 select lives_ok($$ insert into public.opportunity_media (opportunity_id, storage_path, is_blind_safe)

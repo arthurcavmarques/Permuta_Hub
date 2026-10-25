@@ -224,6 +224,7 @@ test('lead vira dossiê publicável sem planilha; sem pendências resolvidas nã
   await expect(page).toHaveURL(/\/admin\/areas\//);
   const blockers = page.getByTestId('blockers');
   await expect(blockers).toContainText('Zoneamento');
+  await expect(blockers).toContainText('Tipo de ativo / uso');
   await expect(blockers).toContainText('Corretor responsável');
   await expect(blockers).toContainText('Autorização do proprietário');
   await expect(page.getByRole('button', { name: 'Publicar' })).toBeDisabled();
@@ -239,6 +240,7 @@ test('lead vira dossiê publicável sem planilha; sem pendências resolvidas nã
   // 4. Curadoria completa o dossiê no editor e confere a autorização.
   await page.getByRole('link', { name: 'Editar área' }).click();
   await page.getByLabel('Zoneamento').fill('Residencial E2E');
+  await page.getByLabel('Tipo de ativo / uso').selectOption({ label: 'Terreno urbano' });
   await page.getByRole('button', { name: 'Salvar', exact: true }).click();
   await expect(page.getByText('Salvo.').first()).toBeVisible();
   await page.getByTestId('kml-input').setInputFiles('scripts/fixtures/exemplo.kml');

@@ -1,15 +1,31 @@
 {
-  "$comment": "Mapeamento das colunas da planilha do Land Bank. Cabeçalhos são comparados sem acento, sem caixa e sem pontuação. Ajuste os apelidos quando a planilha real do Fábio chegar (D001).",
+  "$comment": "Mapeamento padrão do Land Bank (CLI). A tela de importação usa a cópia editável no banco (import_mappings). Cabeçalhos comparados sem acento, caixa e pontuação.",
   "memorial_prefix": "MD-",
   "memorial_pad": 3,
   "header_search_rows": 15,
   "columns": {
-    "memorial_number": ["numero do memorial descritivo", "numero do memorial", "memorial descritivo", "memorial", "n md", "no md", "numero md", "md"],
+    "memorial_number": [
+      "numero do memorial descritivo",
+      "numero do memorial",
+      "memorial descritivo",
+      "memorial",
+      "n md",
+      "no md",
+      "numero md",
+      "md"
+    ],
     "area_m2": ["area m2", "area", "metragem", "tamanho", "area total", "area aproximada"],
+    "asset_type": ["tipo de ativo", "uso", "tipo de imovel", "tipo de uso"],
     "land_type": ["tipo de terreno", "tipo terreno", "tipo"],
     "status": ["status da negociacao", "status negociacao", "status"],
     "commercial_progress": ["andamento comercial", "andamento", "observacoes comerciais"],
-    "offered_to": ["empresas para as quais foi oferecida", "oferecida para", "ofertado para", "empresas ofertadas", "empresas"],
+    "offered_to": [
+      "empresas para as quais foi oferecida",
+      "oferecida para",
+      "ofertado para",
+      "empresas ofertadas",
+      "empresas"
+    ],
     "city": ["cidade", "municipio"],
     "neighborhood": ["bairro"],
     "zoning": ["zoneamento"],
@@ -49,6 +65,21 @@
     "arquivado": "archived",
     "arquivada": "archived"
   },
+  "asset_type_map": {
+    "terreno": "terreno",
+    "urbano": "terreno",
+    "lote": "terreno",
+    "gleba": "gleba",
+    "rural": "area_rural",
+    "fazenda": "area_rural",
+    "sitio": "area_rural",
+    "galpao": "galpao",
+    "industrial": "galpao",
+    "pavilhao": "galpao",
+    "predio": "imovel_retrofit",
+    "casa": "imovel_retrofit",
+    "retrofit": "imovel_retrofit"
+  },
   "negotiation_model_map": {
     "venda": "sale",
     "compra": "sale",
@@ -57,5 +88,9 @@
     "joint venture": "partnership",
     "outro": "other"
   },
-  "defaults": { "city": "Porto Alegre", "state": "RS", "status": "captured" }
+  "defaults": {
+    "city": "Porto Alegre",
+    "state": "RS",
+    "status": "captured"
+  }
 }
