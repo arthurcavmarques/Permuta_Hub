@@ -33,6 +33,8 @@ export interface BlindOpportunity {
   asking_value: number | null;
   negotiation_models: NegotiationModel[];
   mandate_status: MandateStatus;
+  estimated_units: number | null;
+  cash_share_pct: number | null;
   approx_lng: number | null;
   approx_lat: number | null;
   approx_radius_m: number;

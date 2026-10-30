@@ -8,7 +8,10 @@ import {
   formatArea,
   formatCoefficient,
   formatDate,
+  formatMoney,
   formatMoneyCompact,
+  paymentSplit,
+  valuePerUnit,
 } from '@/lib/format';
 import { ApproxLocationMap } from '@/lib/map';
 import { Button } from '@/components/ui/button';
@@ -45,6 +48,15 @@ function KeyFigure({ label, value }: { label: string; value: string | null }) {
   );
 }
 
+function StudyFigure({ label, value }: { label: string; value: string | null }) {
+  return (
+    <div>
+      <dd className="tabular text-xl font-semibold text-primary">{value ?? '—'}</dd>
+      <dt className="mt-0.5 text-xs text-muted">{label}</dt>
+    </div>
+  );
+}
+
 export function DossierPage() {
   const { id = '' } = useParams();
   const { data: o, isLoading, isError } = useBlindOpportunity(id);
@@ -57,6 +69,7 @@ export function DossierPage() {
 
   const potential = estimatedPotential(o.area_m2_approx, o.coefficient);
   const location = [o.neighborhood, o.city, o.state].filter(Boolean).join(' · ');
+  const split = paymentSplit(o.asking_value, o.cash_share_pct);
 
   return (
     <article className="mx-auto max-w-3xl pb-16 print:max-w-none print:pb-0">
@@ -205,6 +218,50 @@ export function DossierPage() {
             <p className="text-muted">{t.dossier.noPhotos}</p>
           )}
         </Section>
+
+        {(o.estimated_units !== null || split) && (
+          <Section title={t.dossier.sections.study}>
+            {o.estimated_units !== null && (
+              <dl className="grid grid-cols-3 gap-3 rounded-lg bg-surface p-4">
+                <StudyFigure
+                  label={t.dossier.study.units}
+                  value={o.estimated_units.toLocaleString('pt-BR')}
+                />
+                <StudyFigure
+                  label={t.dossier.study.referenceValue}
+                  value={formatMoneyCompact(o.asking_value)}
+                />
+                <StudyFigure
+                  label={t.dossier.study.perUnit}
+                  value={formatMoney(valuePerUnit(o.asking_value, o.estimated_units))}
+                />
+              </dl>
+            )}
+            {split && (
+              <div className="mt-4" data-testid="payment-split">
+                <div className="flex h-3 overflow-hidden rounded-full bg-border">
+                  <div className="bg-primary" style={{ width: `${split.cashPct}%` }} />
+                  <div className="bg-accent" style={{ width: `${split.swapPct}%` }} />
+                </div>
+                <dl className="mt-2 grid grid-cols-2 gap-3">
+                  <div>
+                    <dt className="text-xs text-muted">{t.dossier.study.cash(split.cashPct)}</dt>
+                    <dd className="tabular font-semibold">
+                      {formatMoneyCompact(split.cash) ?? '—'}
+                    </dd>
+                  </div>
+                  <div className="text-right">
+                    <dt className="text-xs text-muted">{t.dossier.study.swap(split.swapPct)}</dt>
+                    <dd className="tabular font-semibold">
+                      {formatMoneyCompact(split.swap) ?? '—'}
+                    </dd>
+                  </div>
+                </dl>
+              </div>
+            )}
+            <p className="mt-3 text-xs text-muted">{t.dossier.study.disclaimer}</p>
+          </Section>
+        )}
 
         <Section title={t.dossier.sections.conditions}>
           <dl className="grid grid-cols-2 gap-3">

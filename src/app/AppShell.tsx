@@ -19,7 +19,9 @@ const navClass = ({ isActive }: { isActive: boolean }) =>
   isActive ? 'text-primary-foreground' : 'text-primary-foreground/70 hover:text-primary-foreground';
 
 export function AppShell() {
-  const { session, signOut, isApproved, isApprovedBroker, isPlatformAdmin, profile } = useAuth();
+  const { session, signOut, isApproved, isApprovedBroker, isPlatformAdmin, profile, memberships } =
+    useAuth();
+  const isBuyerMember = memberships.some((m) => m.organization.type !== 'brokerage');
   const isOwner = profile?.signup_kind === 'owner' && !isPlatformAdmin;
   type NavItem = { to: string; label: string; end?: boolean };
   const links: NavItem[] = [];
@@ -28,6 +30,8 @@ export function AppShell() {
     links.push({ to: '/cadastrar-area', label: t.nav.newArea });
   } else if (isApproved)
     links.push({ to: '/oportunidades', label: t.nav.opportunities, end: true });
+  if (isApproved && isBuyerMember && !isPlatformAdmin)
+    links.push({ to: '/teses', label: t.nav.theses });
   if (isApprovedBroker) {
     links.push({ to: '/areas/nova', label: t.nav.newArea });
     links.push({ to: '/areas/leads', label: t.nav.brokerLeads });

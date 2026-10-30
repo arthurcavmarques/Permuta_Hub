@@ -30,6 +30,8 @@ import {
 } from '@/features/admin/CurationPages';
 import { OwnerLeadPage } from '@/features/owner/OwnerLeadPage';
 import { OwnerAreasPage } from '@/features/owner/OwnerAreasPage';
+import { ThesesPage } from '@/features/theses/ThesesPage';
+import { AdminMatchesPage, AdminThesesPage } from '@/features/admin/MatchPages';
 
 export function App() {
   useEffect(() => {
@@ -71,6 +73,14 @@ export function App() {
           }
         />
         <Route
+          path="/teses"
+          element={
+            <RequireApproved>
+              <ThesesPage />
+            </RequireApproved>
+          }
+        />
+        <Route
           path="/areas/nova"
           element={
             <RequireApproved>
@@ -108,6 +118,8 @@ export function App() {
           <Route path="areas/:id" element={<AdminAreaPage />} />
           <Route path="publicaveis" element={<AdminPublishablePage />} />
           <Route path="importacao" element={<AdminImportPage />} />
+          <Route path="teses" element={<AdminThesesPage />} />
+          <Route path="matches" element={<AdminMatchesPage />} />
           <Route path="logs" element={<AdminLogsPage />} />
           <Route path="usuarios" element={<AdminUsersPage />} />
           <Route path="creci" element={<AdminCreciPage />} />

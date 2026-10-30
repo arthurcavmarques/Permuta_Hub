@@ -30,6 +30,7 @@ import {
   type AdminArea,
   type Lead,
 } from './curation-api';
+import { DefaultBrokerCard } from './MatchPages';
 
 const c = t.curation;
 const day = (iso: string) => formatDate(new Date(iso));
@@ -60,6 +61,7 @@ export function AdminLeadsPage() {
   );
   return (
     <div className="space-y-4">
+      <DefaultBrokerCard />
       <Select
         className="max-w-xs"
         aria-label={c.leads.filter}

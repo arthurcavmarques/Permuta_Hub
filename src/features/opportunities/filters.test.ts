@@ -20,6 +20,8 @@ const base: BlindOpportunity = {
   project_types: [],
   negotiation_conditions: null,
   asking_value: null,
+  estimated_units: null,
+  cash_share_pct: null,
   negotiation_models: ['sale'],
   mandate_status: 'exclusive',
   approx_lng: -51.18,
