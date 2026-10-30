@@ -37,6 +37,7 @@ export const t = {
     account: 'Minha conta',
     organization: 'Organização',
     admin: 'Curadoria',
+    theses: 'O que procuro',
   },
   signup: {
     title: 'Criar conta',
@@ -377,6 +378,7 @@ export const t = {
     errors: {
       area: 'Informe a área em m² (só números).',
       number: 'Use só números.',
+      percent: 'Informe um percentual de 0 a 100.',
     },
     details: {
       title: 'Dados do dossiê',
@@ -390,6 +392,11 @@ export const t = {
       masterPlan: 'Plano diretor (notas)',
       potential: 'Potencial construtivo (notas)',
       askingValue: 'Valor pretendido (R$)',
+      cashShare: 'Parte em dinheiro (%)',
+      cashShareHint: 'O restante é em permuta/adesão. Ex.: 40.',
+      estimatedUnits: 'Unidades estimadas (estudo)',
+      estimatedUnitsHint:
+        'Nº máximo do estudo preliminar. O dossiê mostra o valor da área por unidade.',
       titleBlind: 'Título da versão cega (opcional)',
       titleBlindHint: 'Vazio = título automático. Não use nada que identifique a área.',
     },
@@ -493,6 +500,8 @@ export const t = {
       areas: 'Áreas',
       publishable: 'Publicáveis',
       import: 'Importação',
+      theses: 'Teses',
+      matches: 'Matches',
       logs: 'Logs de acesso',
     },
     users: {
@@ -717,6 +726,136 @@ export const t = {
       empty: 'Nenhuma área com esses filtros.',
     },
   },
+  theses: {
+    title: 'O que sua empresa procura',
+    intro:
+      'Cadastre uma ou mais teses de interesse. A curadoria usa as teses para sugerir as áreas que combinam com a sua empresa e explica o porquê de cada sugestão. Campo vazio = sem restrição.',
+    adminIntro:
+      'Teses de interesse das empresas compradoras. Ao salvar, o sistema recalcula os matches na hora.',
+    organization: 'Empresa',
+    chooseOrganization: 'Escolha a empresa',
+    noOrganization:
+      'Sua conta ainda não está ligada a uma empresa compradora. Cadastre a empresa em "Minha conta".',
+    empty: 'Nenhuma tese cadastrada ainda.',
+    add: 'Nova tese',
+    edit: 'Editar',
+    cancel: 'Cancelar',
+    save: 'Salvar tese',
+    saving: 'Salvando…',
+    saved: 'Tese salva. Os matches foram recalculados.',
+    readOnly: 'Seu papel na empresa é só de leitura: peça a um admin da empresa para alterar.',
+    active: 'Ativa',
+    paused: 'Pausada',
+    activeLabel: 'Tese ativa (desmarque para pausar sem apagar)',
+    commaHint: 'Separe por vírgula.',
+    groups: {
+      required: 'Filtros obrigatórios',
+      requiredHint: 'A área que não atende a um destes fica de fora.',
+      preferences: 'Preferências',
+      preferencesHint: 'Somam pontos na nota do match (0–100).',
+    },
+    fields: {
+      name: 'Nome da tese',
+      namePlaceholder: 'Ex.: Vertical residencial em Porto Alegre',
+      assetTypes: 'Tipos de ativo',
+      states: 'Estados (UF)',
+      cities: 'Cidades',
+      regionTags: 'Regiões / contexto urbano',
+      minArea: 'Área mínima (m²)',
+      maxArea: 'Área máxima (m²)',
+      models: 'Formatos de negócio aceitos',
+      minTicket: 'Ticket mínimo (R$)',
+      maxTicket: 'Ticket máximo (R$)',
+      zonings: 'Zoneamentos aceitos',
+      minCoefficient: 'Coeficiente mínimo',
+      projectTypes: 'Tipos de projeto',
+      neighborhoods: 'Bairros preferidos',
+      notes: 'Observações',
+    },
+    summary: {
+      anyType: 'qualquer tipo',
+      anyRegion: 'qualquer região',
+      area: (min: string | null, max: string | null) =>
+        min && max
+          ? `${min} a ${max}`
+          : min
+            ? `a partir de ${min}`
+            : max
+              ? `até ${max}`
+              : 'qualquer metragem',
+      ticket: (min: string | null, max: string | null) =>
+        min && max
+          ? `ticket ${min} a ${max}`
+          : min
+            ? `ticket a partir de ${min}`
+            : max
+              ? `ticket até ${max}`
+              : null,
+    },
+    errors: {
+      name: 'Dê um nome à tese.',
+      number: 'Use só números.',
+      range: 'O mínimo não pode ser maior que o máximo.',
+    },
+  },
+  matches: {
+    intro:
+      'Áreas qualificadas × teses das empresas. Filtros obrigatórios eliminam; a nota (0–100) ordena. Aprovar aqui ainda não envia nada: o envio é a Fase 4.',
+    recompute: 'Recalcular tudo',
+    recomputing: 'Recalculando…',
+    recomputed: (n: number) => (n === 1 ? '1 match vigente.' : `${n} matches vigentes.`),
+    filter: 'Situação',
+    all: 'Todos',
+    empty: 'Nenhum match nesta situação. Cadastre teses na aba "Teses" ou qualifique mais áreas.',
+    status: { suggested: 'Sugerido', approved: 'Aprovado', rejected: 'Recusado' },
+    score: 'Nota',
+    adjusted: (auto: number) => `ajustada (automática: ${auto})`,
+    noLongerMatches: 'Não combina mais (a área ou a tese mudou)',
+    blockers: 'Área com pendências de publicação: não poderá ser enviada até regularizar.',
+    openDossier: 'Dossiê',
+    openArea: 'Área',
+    hard: 'Filtros',
+    soft: 'Pontuação',
+    note: 'Observação da curadoria',
+    manualScore: 'Ajustar nota',
+    approve: 'Aprovar',
+    reject: 'Recusar',
+    reopen: 'Voltar para sugerido',
+    decidedBy: (who: string, when: string) => `por ${who} em ${when}`,
+    auto: 'automático',
+    config: {
+      title: 'Regras do match',
+      body: 'Pesos da pontuação, nota mínima para sugerir e nota para aprovar sozinho. Salvar recalcula tudo.',
+      minScore: 'Nota mínima para sugerir',
+      autoApprove: 'Aprovar sozinho a partir de',
+      autoApproveHint: 'Vazio = a curadoria sempre aprova.',
+      weights: 'Pesos',
+      save: 'Salvar e recalcular',
+      saved: 'Regras salvas e matches recalculados.',
+    },
+    criteria: {
+      status: 'Situação da área',
+      thesis: 'Tese',
+      asset_type: 'Tipo de ativo',
+      region: 'Região',
+      area: 'Metragem',
+      negotiation: 'Formato de negócio',
+      ticket: 'Ticket',
+      zoning: 'Zoneamento',
+      coefficient: 'Coeficiente',
+      project_types: 'Tipos de projeto',
+      proximity: 'Proximidade',
+      freshness: 'Atualidade',
+      response_history: 'Histórico de resposta',
+    } as Record<string, string>,
+  },
+  defaultBroker: {
+    title: 'Corretor das áreas do proprietário',
+    body: 'Quem atende as áreas que o proprietário cadastra pelo site. Leads novos já chegam com este corretor; os que estão sem corretor passam para ele.',
+    none: 'Ninguém (a curadoria atribui à mão)',
+    save: 'Definir',
+    saved: 'Corretor padrão definido.',
+  },
   list: {
     title: 'Oportunidades',
     count: (n: number) => (n === 1 ? '1 área' : `${n} áreas`),
@@ -751,6 +890,16 @@ export const t = {
       projectTypes: 'Tipos de projeto possíveis',
       photos: 'Fotografias e mapas',
       conditions: 'Condições da negociação',
+      study: 'Estudo preliminar',
+    },
+    study: {
+      units: 'unidades (estimativa máxima)',
+      referenceValue: 'valor de referência da área',
+      perUnit: 'valor da área por unidade',
+      cash: (pct: number) => `${pct.toLocaleString('pt-BR')}% em dinheiro`,
+      swap: (pct: number) => `${pct.toLocaleString('pt-BR')}% em permuta/adesão`,
+      disclaimer:
+        'Valores e quantidades são estimativas preliminares, sujeitas a projeto e à aprovação dos órgãos competentes.',
     },
     approxLocation: (radius: number) =>
       `Localização aproximada (raio de ${radius.toLocaleString('pt-BR')} m). O endereço exato é liberado após o termo de confidencialidade.`,

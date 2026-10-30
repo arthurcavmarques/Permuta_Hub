@@ -134,6 +134,11 @@ const detailsSchema = z.object({
   negotiation_models: z.array(z.enum(MODELS as [NegotiationModel, ...NegotiationModel[]])),
   negotiation_conditions: z.string().trim(),
   asking_value: optNumber,
+  estimated_units: z.string().trim().regex(/^\d*$/, e.errors.number),
+  cash_share_pct: optNumber.refine(
+    (s) => !s || Number(s.replace(',', '.')) <= 100,
+    e.errors.percent,
+  ),
 });
 type DetailsValues = z.infer<typeof detailsSchema>;
 
@@ -166,6 +171,8 @@ function DetailsSection({ o }: { o: EditableOpportunity }) {
       negotiation_models: o.negotiation_models,
       negotiation_conditions: o.negotiation_conditions ?? '',
       asking_value: o.asking_value?.toString() ?? '',
+      estimated_units: o.estimated_units?.toString() ?? '',
+      cash_share_pct: o.cash_share_pct?.toString() ?? '',
     },
   });
 
@@ -189,6 +196,8 @@ function DetailsSection({ o }: { o: EditableOpportunity }) {
         negotiation_models: v.negotiation_models,
         negotiation_conditions: v.negotiation_conditions || null,
         asking_value: toNumber(v.asking_value),
+        estimated_units: toNumber(v.estimated_units),
+        cash_share_pct: toNumber(v.cash_share_pct),
       },
       { onSuccess: () => setSaved(true) },
     );
@@ -268,6 +277,8 @@ function DetailsSection({ o }: { o: EditableOpportunity }) {
           </div>
         </fieldset>
         {field('asking_value', e.details.askingValue)}
+        {field('cash_share_pct', e.details.cashShare, { hint: e.details.cashShareHint })}
+        {field('estimated_units', e.details.estimatedUnits, { hint: e.details.estimatedUnitsHint })}
         <div className="space-y-1.5 sm:col-span-3">
           <Label htmlFor="f-conditions">{t.newArea.conditions}</Label>
           <Textarea id="f-conditions" {...register('negotiation_conditions')} />

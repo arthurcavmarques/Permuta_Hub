@@ -23,6 +23,8 @@ export interface EditableOpportunity {
   project_types: string[];
   negotiation_conditions: string | null;
   asking_value: number | null;
+  estimated_units: number | null;
+  cash_share_pct: number | null;
   negotiation_models: NegotiationModel[];
   mandate_status: MandateStatus;
   responsible_party_user_id: string | null;
@@ -30,7 +32,7 @@ export interface EditableOpportunity {
 }
 
 const COLUMNS =
-  'id, memorial_number, title_blind, status, asset_type, land_type, area_m2, city, neighborhood, state, region_tags, zoning, master_plan_notes, buildable_potential_notes, coefficient, project_types, negotiation_conditions, asking_value, negotiation_models, mandate_status, responsible_party_user_id, published_at';
+  'id, memorial_number, title_blind, status, asset_type, land_type, area_m2, city, neighborhood, state, region_tags, zoning, master_plan_notes, buildable_potential_notes, coefficient, project_types, negotiation_conditions, asking_value, estimated_units, cash_share_pct, negotiation_models, mandate_status, responsible_party_user_id, published_at';
 
 export const editorKeys = {
   opp: (id: string) => ['editor', id, 'opportunity'] as const,
