@@ -16,16 +16,19 @@ select org.id, t.name, t.asset_types, t.cities, t.region_tags, t.min_area, t.max
        t.neighborhoods, 'Tese fictícia de demonstração.', null
   from (values
     ('Incorporadora Exemplo Beta (fictícia)', 'Vertical residencial em Porto Alegre',
-     array['terreno'], array['Porto Alegre'], array[]::text[], 2000::numeric, 15000::numeric, array['swap', 'sale'],
+     array['area_urbana'], array['Porto Alegre'], array[]::text[], 2000::numeric, 15000::numeric, array['swap', 'sale'],
      null::numeric, 60000000::numeric, array['Mista'], 2.0::numeric, array['residencial vertical', 'uso misto'],
      array['Petrópolis', 'Três Figueiras', 'Jardim Europa']),
     ('Construtora Exemplo Alfa (fictícia)', 'Zona Sul — condomínios e vertical baixo',
-     array['terreno', 'gleba'], array[]::text[], array['Zona Sul'], 4000, 40000, array['swap', 'partnership'],
+     array['area_urbana'], array[]::text[], array['Zona Sul'], 4000, 40000, array['swap', 'partnership'],
      null, null, array[]::text[], null, array['condomínio horizontal', 'residencial vertical'], array[]::text[]),
     ('Loteadora Exemplo Gama (fictícia)', 'Glebas para loteamento na Região Metropolitana',
-     array['gleba', 'area_rural'], array[]::text[], array[]::text[], 10000, null, array['partnership', 'swap'],
+     array['area_urbana', 'area_rural'], array[]::text[], array[]::text[], 10000, null, array['partnership', 'swap'],
      null, null, array[]::text[], null, array['loteamento'], array[]::text[])
   ) as t(org, name, asset_types, cities, region_tags, min_area, max_area, models, min_ticket, max_ticket, zonings,
          min_coef, project_types, neighborhoods)
   join public.organizations org on org.name = t.org
  where not exists (select 1 from public.buyer_theses b where b.organization_id = org.id and b.name = t.name);
+
+-- Vocação na lista do Modelo 1 (D030).
+update public.buyer_theses set project_types = public.normalize_project_types(project_types);
