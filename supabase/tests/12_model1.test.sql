@@ -4,7 +4,7 @@
 -- todas as fotos e o contato do corretor, nunca o proprietário; suspensão; tipo urbana/rural + edificação.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(60);
+select plan(61);
 
 insert into auth.users (id, email, aud, role, raw_user_meta_data) values
   ('a7000000-0000-0000-0000-000000000001', 'curadoria@t3b.invalid', 'authenticated', 'authenticated', '{"full_name":"Curadora 3B"}'),
@@ -217,6 +217,14 @@ set local role authenticated;
 select pg_temp.as_user('a7000000-0000-0000-0000-000000000001');
 select is_empty($$ select public.opportunity_publish_blockers('c7000000-0000-0000-0000-000000000001') $$,
   'anexo dispensado pela configuração; área rural não exige bairro nem zoneamento');
+
+-- ---------------------------------------------------------------- invariante (regressão do deploy de 2026-11-10)
+reset role;
+select is_empty($$ select 1 from public.matches m join public.opportunities o on o.id = m.opportunity_id
+                     where m.status = 'approved' and m.decided_by is null
+                       and m.decision_note like 'Aprovado automaticamente%'
+                       and exists (select 1 from public.publish_blockers_core(o)) $$,
+  'nenhum match aprovado automaticamente em área com trava de publicação (seed incluído)');
 
 select * from finish();
 rollback;
