@@ -113,6 +113,8 @@ export interface AdminArea {
   area_m2: number | null;
   responsible_party_user_id: string | null;
   published_at: string | null;
+  suspended_at: string | null;
+  suspended_reason: string | null;
   updated_at: string;
 }
 
@@ -123,7 +125,7 @@ export function useAdminAreas() {
       const { data, error } = await supabase
         .from('opportunities')
         .select(
-          'id, memorial_number, status, mandate_status, city, neighborhood, area_m2, responsible_party_user_id, published_at, updated_at',
+          'id, memorial_number, status, mandate_status, city, neighborhood, area_m2, responsible_party_user_id, published_at, suspended_at, suspended_reason, updated_at',
         )
         .order('updated_at', { ascending: false });
       if (error) throw error;
@@ -143,6 +145,9 @@ export type BlockerCode =
   | 'missing_models'
   | 'missing_geometry'
   | 'missing_blind_photo'
+  | 'missing_photo'
+  | 'missing_project_types'
+  | 'suspended'
   | 'no_responsible'
   | 'responsible_creci_not_verified'
   | 'no_area_term'
@@ -224,7 +229,9 @@ export interface OpportunityEvent {
     | 'published'
     | 'unpublished'
     | 'note'
-    | 'imported';
+    | 'imported'
+    | 'suspended'
+    | 'reinstated';
   from_value: string | null;
   to_value: string | null;
   note: string | null;
@@ -297,5 +304,34 @@ export function useAccessLog(f: AccessLogFilters) {
       if (error) throw error;
       return data as AccessLogRow[];
     },
+  });
+}
+
+/** Suspensão pela curadoria (D030): tira do ar e do match; o corretor só republica depois de reabilitada. */
+export function useSuspendArea(id: string) {
+  const invalidate = useInvalidateArea(id);
+  return useMutation({
+    mutationFn: async (reason: string) => {
+      const { error } = await supabase.rpc('suspend_opportunity', {
+        p_opportunity_id: id,
+        p_reason: reason,
+      });
+      if (error) throw error;
+    },
+    onSuccess: invalidate,
+  });
+}
+
+export function useReinstateArea(id: string) {
+  const invalidate = useInvalidateArea(id);
+  return useMutation({
+    mutationFn: async (note: string | null) => {
+      const { error } = await supabase.rpc('reinstate_opportunity', {
+        p_opportunity_id: id,
+        p_note: note,
+      });
+      if (error) throw error;
+    },
+    onSuccess: invalidate,
   });
 }

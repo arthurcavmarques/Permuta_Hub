@@ -9,7 +9,8 @@ export type AgreementType =
   | 'owner_terms'
   | 'platform_terms';
 export type AgreementScope = 'global' | 'opportunity';
-export type SensitiveAccess = 'allowed' | 'needs_agreement' | 'denied';
+/** allowed = tudo (curadoria, corretor responsável); limited = matrícula e endereço (configuração, D030). */
+export type SensitiveAccess = 'allowed' | 'limited' | 'denied';
 
 export interface AgreementPreview {
   template_id: string;
@@ -71,6 +72,7 @@ export function useAcceptAgreement() {
       await Promise.all([
         qc.invalidateQueries({ queryKey: ['has-agreement'] }),
         qc.invalidateQueries({ queryKey: ['sensitive-access'] }),
+        qc.invalidateQueries({ queryKey: ['admin', 'blockers'] }),
         qc.invalidateQueries({ queryKey: ['agreement-preview'] }),
       ]);
     },

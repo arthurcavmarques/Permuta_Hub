@@ -1,5 +1,5 @@
 import type { NegotiationModel } from '@/features/opportunities/types';
-import type { Thesis, ThesisInput } from './api';
+import type { BuildingFilter, Thesis, ThesisInput } from './api';
 
 /** Valores do formulário: listas como texto separado por vírgula, números como texto (vírgula decimal ok). */
 export interface ThesisFormValues {
@@ -16,7 +16,8 @@ export interface ThesisFormValues {
   max_ticket: string;
   zonings: string;
   min_coefficient: string;
-  project_types: string;
+  project_types: string[];
+  building_filter: BuildingFilter;
   neighborhoods: string;
   notes: string;
 }
@@ -53,7 +54,8 @@ export function emptyThesisForm(): ThesisFormValues {
     max_ticket: '',
     zonings: '',
     min_coefficient: '',
-    project_types: '',
+    project_types: [],
+    building_filter: 'any',
     neighborhoods: '',
     notes: '',
   };
@@ -75,7 +77,8 @@ export function thesisToForm(t: Thesis): ThesisFormValues {
     max_ticket: num(t.max_ticket),
     zonings: t.zonings.join(', '),
     min_coefficient: num(t.min_coefficient),
-    project_types: t.project_types.join(', '),
+    project_types: t.project_types,
+    building_filter: t.building_filter,
     neighborhoods: t.neighborhoods.join(', '),
     notes: t.notes ?? '',
   };
@@ -122,7 +125,8 @@ export function formToThesis(
       max_ticket: nums.max_ticket,
       zonings: splitList(v.zonings),
       min_coefficient: nums.min_coefficient,
-      project_types: splitList(v.project_types),
+      project_types: v.project_types,
+      building_filter: v.building_filter,
       neighborhoods: splitList(v.neighborhoods),
       notes: v.notes.trim() || null,
     },

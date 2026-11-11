@@ -3,7 +3,7 @@
 -- não se autoaprova a autorização; comprador nunca vê a autorização do proprietário.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(34);
+select plan(33);
 
 insert into auth.users (id, email, aud, role, raw_user_meta_data) values
   ('a3000000-0000-0000-0000-000000000001', 'curadoria@t23.invalid', 'authenticated', 'authenticated', '{}'),
@@ -122,11 +122,14 @@ insert into public.opportunity_documents (opportunity_id, kind, sensitivity, sto
 set local role authenticated;
 select pg_temp.as_user('a3000000-0000-0000-0000-000000000004');
 select results_eq($$ select file_name from public.opportunity_documents order by file_name $$,
-  $$ values ('estudo.pdf'::text) $$, 'comprador sem termo: só o documento cego (nunca a autorização)');
-select lives_ok($$ select public.accept_agreement('non_circumvention', 'c3000000-0000-0000-0000-000000000001') $$,
-  'comprador aceita o termo');
+  $$ values ('estudo.pdf'::text) $$, 'comprador: só o documento técnico (nunca a autorização nem a matrícula)');
+reset role;
+update public.platform_settings set value = 'true' where key = 'buyer_sees_registry_and_address';
+set local role authenticated;
+select pg_temp.as_user('a3000000-0000-0000-0000-000000000004');
 select results_eq($$ select file_name from public.opportunity_documents order by file_name $$,
-  $$ values ('estudo.pdf'::text), ('matricula.pdf'::text) $$, 'com termo: também o restrito, nunca a autorização');
+  $$ values ('estudo.pdf'::text), ('matricula.pdf'::text) $$,
+  'matrícula liberada pela configuração: também a matrícula, nunca a autorização');
 
 select * from finish();
 rollback;

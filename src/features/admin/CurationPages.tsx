@@ -26,6 +26,8 @@ import {
   useLeads,
   useOpportunityEvents,
   usePublish,
+  useReinstateArea,
+  useSuspendArea,
   type AccessLogFilters,
   type AdminArea,
   type Lead,
@@ -422,6 +424,7 @@ export function AdminAreaPage() {
         </div>
       </div>
       <PublishBox a={a} />
+      <SuspendBox a={a} />
       <ControlsBox a={a} />
       <Timeline id={a.id} />
     </div>
@@ -466,6 +469,46 @@ function PublishBox({ a }: { a: AdminArea }) {
         </div>
       )}
       <FormAlert message={publish.isError ? t.common.error : null} />
+    </Section>
+  );
+}
+
+function SuspendBox({ a }: { a: AdminArea }) {
+  const suspend = useSuspendArea(a.id);
+  const reinstate = useReinstateArea(a.id);
+  const [reason, setReason] = useState('');
+  return (
+    <Section title={c.area.suspendTitle} description={c.area.suspendBody}>
+      {a.suspended_at ? (
+        <div className="space-y-3">
+          <Notice tone="danger">{c.area.suspendedNotice(a.suspended_reason ?? '')}</Notice>
+          <Button
+            variant="secondary"
+            disabled={reinstate.isPending}
+            onClick={() => reinstate.mutate(null)}
+          >
+            {c.area.reinstate}
+          </Button>
+        </div>
+      ) : (
+        <div className="flex flex-wrap gap-2">
+          <Input
+            className="max-w-md"
+            aria-label={c.area.suspendReason}
+            placeholder={c.area.suspendReason}
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+          />
+          <Button
+            variant="secondary"
+            disabled={reason.trim().length < 3 || suspend.isPending}
+            onClick={() => suspend.mutate(reason.trim(), { onSuccess: () => setReason('') })}
+          >
+            {c.area.suspend}
+          </Button>
+        </div>
+      )}
+      <FormAlert message={suspend.isError || reinstate.isError ? t.common.error : null} />
     </Section>
   );
 }

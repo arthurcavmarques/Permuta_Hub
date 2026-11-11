@@ -66,19 +66,19 @@
     "arquivada": "archived"
   },
   "asset_type_map": {
-    "terreno": "terreno",
-    "urbano": "terreno",
-    "lote": "terreno",
-    "gleba": "gleba",
+    "terreno": "area_urbana",
+    "urbano": "area_urbana",
+    "lote": "area_urbana",
+    "gleba": "area_urbana",
     "rural": "area_rural",
     "fazenda": "area_rural",
     "sitio": "area_rural",
-    "galpao": "galpao",
-    "industrial": "galpao",
-    "pavilhao": "galpao",
-    "predio": "imovel_retrofit",
-    "casa": "imovel_retrofit",
-    "retrofit": "imovel_retrofit"
+    "galpao": "area_urbana",
+    "industrial": "area_urbana",
+    "pavilhao": "area_urbana",
+    "predio": "area_urbana",
+    "casa": "area_urbana",
+    "retrofit": "area_urbana"
   },
   "negotiation_model_map": {
     "venda": "sale",

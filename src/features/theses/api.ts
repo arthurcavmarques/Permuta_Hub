@@ -4,6 +4,9 @@ import type { NegotiationModel } from '@/features/opportunities/types';
 import type { OrganizationType } from '@/lib/identity';
 
 /** Tese de interesse: o que uma empresa compradora procura (vazio/nulo = sem restrição). */
+/** Galpão/edificação (D030): indiferente, só com, só sem. */
+export type BuildingFilter = 'any' | 'only' | 'exclude';
+
 export interface Thesis {
   id: string;
   organization_id: string;
@@ -21,6 +24,7 @@ export interface Thesis {
   zonings: string[];
   min_coefficient: number | null;
   project_types: string[];
+  building_filter: BuildingFilter;
   neighborhoods: string[];
   notes: string | null;
   updated_at: string;
@@ -29,7 +33,7 @@ export interface Thesis {
 export type ThesisInput = Omit<Thesis, 'id' | 'updated_at'>;
 
 const COLUMNS =
-  'id, organization_id, name, active, asset_types, states, cities, region_tags, min_area_m2, max_area_m2, negotiation_models, min_ticket, max_ticket, zonings, min_coefficient, project_types, neighborhoods, notes, updated_at';
+  'id, organization_id, name, active, asset_types, states, cities, region_tags, min_area_m2, max_area_m2, negotiation_models, min_ticket, max_ticket, zonings, min_coefficient, project_types, building_filter, neighborhoods, notes, updated_at';
 
 /** RLS: curadoria vê todas; membro aprovado vê as da própria organização. */
 export function useTheses(organizationId?: string) {

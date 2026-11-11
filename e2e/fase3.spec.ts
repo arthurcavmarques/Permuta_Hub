@@ -31,14 +31,14 @@ test('tese do comprador vira match explicado, curadoria aprova e mudança na tes
   test.skip(info.project.name !== 'desktop', 'fluxo longo com duas contas: só no desktop');
   const name = `Tese E2E ${Date.now()}`;
 
-  // 1. Comprador cadastra a tese: Porto Alegre, terreno, 1.000–2.000 m², venda (casa com MD-003, 1.250 m²).
+  // 1. Comprador cadastra a tese: Porto Alegre, área urbana, 1.000–2.000 m², venda (casa com MD-003, 1.250 m²).
   const buyer = await browser.newPage();
   await login(buyer, BUYER);
   await buyer.goto('/teses');
   await buyer.getByRole('button', { name: 'Nova tese' }).click();
   const form = buyer.getByRole('form', { name: 'Salvar tese' });
   await form.getByLabel('Nome da tese').fill(name);
-  await form.getByLabel('Terreno urbano').check();
+  await form.getByLabel('Área urbana').check();
   await form.getByLabel('Cidades').fill('porto alegre');
   await form.getByLabel('Área mínima (m²)').fill('1.000');
   await form.getByLabel('Área máxima (m²)').fill('2000');

@@ -20,7 +20,7 @@ $$;
 -- Linhas como o parser do app entrega.
 create function pg_temp.rows_v1() returns jsonb language sql as $$
   select '[
-    {"line": 4, "warnings": [], "opportunity": {"memorial_number": "MD-901", "status": "qualified", "asset_type": "terreno",
+    {"line": 4, "warnings": [], "opportunity": {"memorial_number": "MD-901", "status": "qualified", "asset_type": "area_urbana",
       "land_type": "Urbano", "area_m2": 12400.5, "neighborhood": "Petrópolis", "zoning": "Mista",
       "negotiation_models": ["swap"],
       "extra": {"landbank": {"status_raw": "Disponível"}, "legacy_offered_to": {"companies": ["Construtora 2B Alfa"], "raw": "Construtora 2B Alfa"}}},
@@ -60,7 +60,7 @@ select is((select v #>> '{counts,inserted}' from res where k = 'b1'), '2', 'impo
 select is((select v #>> '{counts,rejected}' from res where k = 'b1'), '1', 'rejeitadas do parser entram no relatório');
 select results_eq($$ select memorial_number, mandate_status::text, status::text, city, state, asset_type
                        from public.opportunities where memorial_number in ('MD-901', 'MD-902') order by 1 $$,
-  $$ values ('MD-901'::text, 'unknown'::text, 'qualifying'::text, 'Porto Alegre'::text, 'RS'::text, 'terreno'::text),
+  $$ values ('MD-901'::text, 'unknown'::text, 'qualifying'::text, 'Porto Alegre'::text, 'RS'::text, 'area_urbana'::text),
             ('MD-902', 'unknown', 'captured', 'Porto Alegre', 'RS', null) $$,
   'mandato desconhecido; "qualificada" da planilha rebaixada (não publicável); padrões de cidade/UF; sem tipo = vazio');
 select is((select v #>> '{counts,status_capped}' from res where k = 'b1'), '1', 'rebaixamento contado');

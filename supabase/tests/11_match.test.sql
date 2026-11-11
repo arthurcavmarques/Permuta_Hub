@@ -29,28 +29,28 @@ insert into public.organization_members (organization_id, user_id, role) values
 insert into public.opportunities (id, memorial_number, asset_type, status, area_m2, city, neighborhood, state,
                                   region_tags, zoning, coefficient, project_types, negotiation_models, asking_value,
                                   mandate_status, published_at) values
-  ('c6000000-0000-0000-0000-000000000001', 'T3-001', 'terreno', 'qualified', 10000, 'Cidade Teste', 'Centro T3', 'RS',
+  ('c6000000-0000-0000-0000-000000000001', 'T3-001', 'area_urbana', 'qualified', 10000, 'Cidade Teste', 'Centro T3', 'RS',
    '{Zona T3}', 'Mista 03', 2.5, '{residencial vertical}', '{swap}', 20000000, 'exclusive', now()),
   -- metragem exatamente no limite superior (20.000)
-  ('c6000000-0000-0000-0000-000000000002', 'T3-002', 'terreno', 'qualified', 20000, 'Cidade Teste', 'Bairro T3', 'RS',
+  ('c6000000-0000-0000-0000-000000000002', 'T3-002', 'area_urbana', 'qualified', 20000, 'Cidade Teste', 'Bairro T3', 'RS',
    '{}', null, null, '{}', '{swap,sale}', null, 'exclusive', now()),
   -- fora da metragem
-  ('c6000000-0000-0000-0000-000000000003', 'T3-003', 'terreno', 'qualified', 20001, 'Cidade Teste', 'Centro T3', 'RS',
+  ('c6000000-0000-0000-0000-000000000003', 'T3-003', 'area_urbana', 'qualified', 20001, 'Cidade Teste', 'Centro T3', 'RS',
    '{}', 'Mista 03', 2.5, '{residencial vertical}', '{swap}', null, 'exclusive', now()),
   -- tipo de ativo errado
-  ('c6000000-0000-0000-0000-000000000004', 'T3-004', 'galpao', 'qualified', 10000, 'Cidade Teste', 'Centro T3', 'RS',
+  ('c6000000-0000-0000-0000-000000000004', 'T3-004', 'area_rural', 'qualified', 10000, 'Cidade Teste', 'Centro T3', 'RS',
    '{}', null, null, '{}', '{swap}', null, 'exclusive', now()),
   -- outra cidade
-  ('c6000000-0000-0000-0000-000000000005', 'T3-005', 'terreno', 'qualified', 10000, 'Outra Cidade', 'X', 'SC',
+  ('c6000000-0000-0000-0000-000000000005', 'T3-005', 'area_urbana', 'qualified', 10000, 'Outra Cidade', 'X', 'SC',
    '{}', null, null, '{}', '{swap}', null, 'exclusive', now()),
   -- ainda qualificando: não entra
-  ('c6000000-0000-0000-0000-000000000006', 'T3-006', 'terreno', 'qualifying', 10000, 'Cidade Teste', 'Centro T3', 'RS',
+  ('c6000000-0000-0000-0000-000000000006', 'T3-006', 'area_urbana', 'qualifying', 10000, 'Cidade Teste', 'Centro T3', 'RS',
    '{}', null, null, '{}', '{swap}', null, 'exclusive', null),
   -- valor acima do ticket
-  ('c6000000-0000-0000-0000-000000000007', 'T3-007', 'terreno', 'qualified', 10000, 'Cidade Teste', 'Centro T3', 'RS',
+  ('c6000000-0000-0000-0000-000000000007', 'T3-007', 'area_urbana', 'qualified', 10000, 'Cidade Teste', 'Centro T3', 'RS',
    '{}', null, null, '{}', '{swap}', 90000000, 'exclusive', now()),
   -- formato só venda
-  ('c6000000-0000-0000-0000-000000000008', 'T3-008', 'terreno', 'qualified', 10000, 'Cidade Teste', 'Centro T3', 'RS',
+  ('c6000000-0000-0000-0000-000000000008', 'T3-008', 'area_urbana', 'qualified', 10000, 'Cidade Teste', 'Centro T3', 'RS',
    '{}', null, null, '{}', '{sale}', null, 'exclusive', now());
 
 create function pg_temp.as_user(p_id text) returns void language sql as $$
@@ -74,7 +74,7 @@ select lives_ok($$
   insert into public.buyer_theses (id, organization_id, name, asset_types, cities, min_area_m2, max_area_m2,
                                    negotiation_models, max_ticket, zonings, min_coefficient, project_types, neighborhoods)
   values ('d6000000-0000-0000-0000-000000000001', 'b6000000-0000-0000-0000-000000000001', 'Tese A',
-          '{terreno}', '{cidade teste}', 5000, 20000, '{swap}', 50000000, '{mista}', 2.0, '{Residencial Vertical}', '{Centro T3}')
+          '{area_urbana}', '{cidade teste}', 5000, 20000, '{swap}', 50000000, '{mista}', 2.0, '{Residencial Vertical}', '{Centro T3}')
 $$, 'admin da organização cria tese da própria organização');
 select throws_ok($$
   insert into public.buyer_theses (organization_id, name) values ('b6000000-0000-0000-0000-000000000002', 'Invasora')
@@ -149,7 +149,7 @@ select lives_ok(format($$ select public.decide_match(%L, 'approved', 'Boa área'
   (pg_temp.match_row('T3-001', 'Tese A')).id), 'curadoria aprova e ajusta a nota');
 select is((pg_temp.match_row('T3-001', 'Tese A')).status, 'approved'::public.match_status, 'match aprovado');
 select is((pg_temp.match_row('T3-001', 'Tese A')).manual_score, 95, 'nota ajustada guardada à parte');
-update public.opportunities set asset_type = 'galpao' where memorial_number = 'T3-001';
+update public.opportunities set asset_type = 'area_rural' where memorial_number = 'T3-001';
 select is((pg_temp.match_row('T3-001', 'Tese A')).status, 'approved'::public.match_status,
   'aprovado não some quando a área muda');
 select ok(not (pg_temp.match_row('T3-001', 'Tese A')).still_matches, 'mas fica marcado como "não combina mais"');
@@ -159,10 +159,12 @@ select ok((select count(*) > 0 from public.admin_list_matches() where memorial_n
 -- auto-aprovação acima de uma nota
 update public.platform_settings set value = jsonb_set(value, '{auto_approve_score}', '80') where key = 'match_config';
 insert into public.buyer_theses (organization_id, name, cities) values ('b6000000-0000-0000-0000-000000000002', 'Tese auto', '{Cidade Teste}');
-select is((pg_temp.match_row('T3-002', 'Tese auto')).status, 'approved'::public.match_status,
-  'acima da nota configurada, aprova sozinho');
-select is((pg_temp.match_row('T3-002', 'Tese auto')).decision_note, 'Aprovado automaticamente (nota ≥ 80)',
-  'auto-aprovação explica o porquê');
+-- T3-002 é "legada" (sem responsável, autorização etc.): mesmo acima da nota, fica para a curadoria (3B).
+-- A auto-aprovação de área sem pendência está em 12_model1.
+select is((pg_temp.match_row('T3-002', 'Tese auto')).status, 'suggested'::public.match_status,
+  'acima da nota, mas com pendência de publicação: fica para a curadoria');
+select is((pg_temp.match_row('T3-002', 'Tese auto')).decision_note, null,
+  'sem nota de auto-aprovação');
 
 -- ---------------------------------------------------------------- corretor padrão das áreas do proprietário
 select throws_ok($$ select public.set_owner_lead_default_broker('a6000000-0000-0000-0000-000000000002') $$,
