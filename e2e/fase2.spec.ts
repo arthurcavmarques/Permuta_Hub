@@ -13,47 +13,30 @@ async function login(page: Page, user: { email: string; password: string }) {
   await expect(page).toHaveURL(/\/oportunidades/);
 }
 
-test('comprador só vê o dado restrito depois de aceitar o termo da área (D020)', async ({
+test('comprador vê o dossiê sem termo e nunca o dado restrito do proprietário (D030)', async ({
   page,
 }, info) => {
-  // Um usuário e uma área por projeto: o aceite é pessoal e por área.
   const [user, md, mat] =
     info.project.name === 'desktop'
       ? [COLEGA, 'MD-005', 'MAT-005-FICT']
       : [COMPRADOR, 'MD-003', 'MAT-003-FICT'];
   await login(page, user);
   await page.getByRole('link', { name: new RegExp(md) }).click();
-
-  const panel = page.getByTestId('sensitive-panel');
-  await expect(panel).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+  // Sem termo do comprador; com buyer_sees_registry_and_address desligado, nem o painel aparece.
+  await expect(page.getByTestId('sensitive-panel')).toHaveCount(0);
+  await expect(page.getByTestId('agreement-non_circumvention')).toHaveCount(0);
   await expect(page.getByText(mat)).toHaveCount(0);
-
-  // O aceite persiste no banco local: numa segunda execução sem `db reset` o termo já existe.
-  const needsTerm = await panel.getByText('aceite o termo').isVisible();
-  test
-    .info()
-    .annotations.push({ type: 'termo', description: needsTerm ? 'aceito agora' : 'já aceito' });
-  await panel.getByRole('button', { name: 'Revelar dados restritos' }).click();
-  if (needsTerm) {
-    const card = page.getByTestId('agreement-non_circumvention');
-    await expect(card).toContainText(md);
-    await expect(card).toContainText('MINUTA');
-    const accept = card.getByRole('button', { name: 'Aceitar termo' });
-    await expect(accept).toBeDisabled();
-    await card.getByLabel('Li o texto acima e aceito o termo.').check();
-    await accept.click();
-  }
-  await expect(page.getByText(mat)).toBeVisible();
 });
 
 test('curadoria vê os termos versionados e pode abrir o texto', async ({ page }) => {
   await login(page, ADMIN);
   await page.goto('/admin/termos');
-  const buyer = page.getByTestId('terms-non_circumvention');
-  await expect(buyer).toContainText('Termo de confidencialidade e não-circunvenção');
-  await expect(buyer).toContainText('Ativa');
-  await buyer.getByRole('button', { name: 'Ver texto' }).first().click();
-  await expect(buyer).toContainText('SHA-256');
+  const broker = page.getByTestId('terms-broker_area_authorization');
+  await expect(broker).toContainText('Declaração de autorização e divulgação da área');
+  await expect(broker).toContainText('Ativa');
+  await broker.getByRole('button', { name: 'Ver texto' }).first().click();
+  await expect(broker).toContainText('SHA-256');
 });
 
 async function fillLeadSteps(page: Page, contact?: { name: string; phone: string; email: string }) {
@@ -133,9 +116,7 @@ const PNG = Buffer.from(
 );
 const PDF = Buffer.from('%PDF-1.4\n% documento ficticio de teste\n');
 
-test('corretor monta o dossiê completo no editor e a versão cega reflete', async ({
-  page,
-}, info) => {
+test('corretor monta o dossiê completo no editor e o dossiê reflete', async ({ page }, info) => {
   await login(page, { email: 'corretor@permutahub.local', password: 'corretor-local-123' });
   await page.getByRole('link', { name: 'Cadastrar área' }).click();
   // Termo-mestre já aceito no seed: vai direto ao formulário.
@@ -155,7 +136,7 @@ test('corretor monta o dossiê completo no editor e a versão cega reflete', asy
   await page.getByTestId('kml-input').setInputFiles('scripts/fixtures/exemplo.kml');
   await expect(page.getByRole('button', { name: 'Remover localização' })).toBeVisible();
 
-  // Foto liberada para a versão cega
+  // Foto liberada também para material de divulgação
   await page.getByTestId('media-input').setInputFiles({
     name: 'foto.png',
     mimeType: 'image/png',
@@ -163,8 +144,8 @@ test('corretor monta o dossiê completo no editor e a versão cega reflete', asy
   });
   const media = page.getByTestId('editor-media');
   await expect(media).toHaveCount(1);
-  await media.getByLabel('Pode ir para a versão cega').check();
-  await expect(media.getByLabel('Pode ir para a versão cega')).toBeChecked();
+  await media.getByLabel('Pode ir para material de divulgação').check();
+  await expect(media.getByLabel('Pode ir para material de divulgação')).toBeChecked();
 
   // Dado sensível
   await page.getByRole('button', { name: 'Abrir dados restritos' }).click();
@@ -172,7 +153,7 @@ test('corretor monta o dossiê completo no editor e a versão cega reflete', asy
   await page.getByRole('button', { name: 'Salvar dados restritos' }).click();
   await expect(page.getByText('Salvo.').last()).toBeVisible();
 
-  // Autorização do proprietário + aceite da área
+  // Autorização do proprietário + declaração da área
   await page.getByTestId('authorization-input').setInputFiles({
     name: 'autorizacao.pdf',
     mimeType: 'application/pdf',
@@ -182,10 +163,10 @@ test('corretor monta o dossiê completo no editor e a versão cega reflete', asy
   const term = page.getByTestId('agreement-broker_area_authorization');
   await term.getByLabel('Li o texto acima e aceito o termo.').check();
   await term.getByRole('button', { name: 'Aceitar termo' }).click();
-  await expect(page.getByText('Você já autorizou a divulgação desta área.')).toBeVisible();
+  await expect(page.getByText('Você já assinou a declaração desta área.')).toBeVisible();
 
-  // Versão cega: dados novos, foto liberada, nada restrito exposto.
-  await page.getByRole('link', { name: 'Ver versão cega' }).click();
+  // Dossiê: dados novos, foto, nada restrito exposto.
+  await page.getByRole('link', { name: 'Ver dossiê' }).click();
   await expect(page.getByRole('heading', { level: 1 })).toContainText('3.200 m²');
   await expect(page.getByText('Mista E2E').first()).toBeVisible();
   await expect(page.locator('figure img')).toHaveCount(1);
@@ -224,9 +205,10 @@ test('lead vira dossiê publicável sem planilha; sem pendências resolvidas nã
   await expect(page).toHaveURL(/\/admin\/areas\//);
   const blockers = page.getByTestId('blockers');
   await expect(blockers).toContainText('Zoneamento');
-  await expect(blockers).toContainText('Tipo de ativo / uso');
+  await expect(blockers).toContainText('Tipo de área (urbana ou rural)');
+  await expect(blockers).toContainText('Vocação (tipos de projeto)');
   await expect(blockers).toContainText('Corretor responsável');
-  await expect(blockers).toContainText('Autorização do proprietário');
+  await expect(blockers).toContainText('Autorização escrita do proprietário');
   await expect(page.getByRole('button', { name: 'Publicar' })).toBeDisabled();
   const areaUrl = page.url();
 
@@ -240,7 +222,8 @@ test('lead vira dossiê publicável sem planilha; sem pendências resolvidas nã
   // 4. Curadoria completa o dossiê no editor e confere a autorização.
   await page.getByRole('link', { name: 'Editar área' }).click();
   await page.getByLabel('Zoneamento').fill('Residencial E2E');
-  await page.getByLabel('Tipo de ativo / uso').selectOption({ label: 'Terreno urbano' });
+  await page.getByLabel('Tipo de área').selectOption({ label: 'Área urbana' });
+  await page.getByLabel('Vertical').check();
   await page.getByRole('button', { name: 'Salvar', exact: true }).click();
   await expect(page.getByText('Salvo.').first()).toBeVisible();
   await page.getByTestId('kml-input').setInputFiles('scripts/fixtures/exemplo.kml');
@@ -248,7 +231,7 @@ test('lead vira dossiê publicável sem planilha; sem pendências resolvidas nã
   await page
     .getByTestId('media-input')
     .setInputFiles({ name: 'f.png', mimeType: 'image/png', buffer: PNG });
-  await page.getByTestId('editor-media').getByLabel('Pode ir para a versão cega').check();
+  await page.getByTestId('editor-media').getByLabel('Pode ir para material de divulgação').check();
   await page.getByTestId('authorization-input').setInputFiles({
     name: 'autorizacao.pdf',
     mimeType: 'application/pdf',
@@ -257,21 +240,21 @@ test('lead vira dossiê publicável sem planilha; sem pendências resolvidas nã
   await page.getByRole('button', { name: 'Conferir' }).click();
   await expect(page.getByText('Conferida')).toBeVisible();
 
-  // 5. Ainda falta o aceite do corretor: não publica.
+  // 5. Ainda falta a declaração do corretor: não publica.
   await page.goto(areaUrl);
   await expect(page.getByTestId('blockers')).toHaveText(
-    /Aceite do corretor para divulgar esta área/,
+    /Declaração de autorização assinada pelo corretor/,
   );
   await expect(page.getByTestId('blockers').locator('li')).toHaveCount(1);
   await page.getByRole('button', { name: 'Sair' }).click();
 
-  // 6. Corretor responsável dá o aceite de 1 clique na área.
+  // 6. Corretor responsável assina a declaração da área.
   await login(page, { email: 'corretor@permutahub.local', password: 'corretor-local-123' });
   await page.goto(areaUrl.replace('/admin/areas/', '/areas/') + '/editar');
   const term = page.getByTestId('agreement-broker_area_authorization');
   await term.getByLabel('Li o texto acima e aceito o termo.').check();
   await term.getByRole('button', { name: 'Aceitar termo' }).click();
-  await expect(page.getByText('Você já autorizou a divulgação desta área.')).toBeVisible();
+  await expect(page.getByText('Você já assinou a declaração desta área.')).toBeVisible();
   await page.getByRole('button', { name: 'Sair' }).click();
 
   // 7. Curadoria publica; o log de acesso mostra as gravações.

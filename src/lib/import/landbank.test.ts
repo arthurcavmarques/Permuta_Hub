@@ -103,7 +103,11 @@ describe('parseLandbank — regras da Fase 2B', () => {
   const r = parseLandbank(fixture(), mapping);
 
   it('deduz o tipo de ativo do "tipo de terreno" quando o mapa reconhece (D026)', () => {
-    expect(r.valid.map((v) => v.opportunity.asset_type)).toEqual(['terreno', 'gleba', 'terreno']);
+    expect(r.valid.map((v) => v.opportunity.asset_type)).toEqual([
+      'area_urbana',
+      'area_urbana',
+      'area_urbana',
+    ]);
   });
 
   it('não aplica padrões (cidade, UF): o banco aplica só em área nova', () => {

@@ -25,6 +25,9 @@ export interface EditableOpportunity {
   asking_value: number | null;
   estimated_units: number | null;
   cash_share_pct: number | null;
+  has_building: boolean;
+  suspended_at: string | null;
+  suspended_reason: string | null;
   negotiation_models: NegotiationModel[];
   mandate_status: MandateStatus;
   responsible_party_user_id: string | null;
@@ -32,7 +35,10 @@ export interface EditableOpportunity {
 }
 
 const COLUMNS =
-  'id, memorial_number, title_blind, status, asset_type, land_type, area_m2, city, neighborhood, state, region_tags, zoning, master_plan_notes, buildable_potential_notes, coefficient, project_types, negotiation_conditions, asking_value, estimated_units, cash_share_pct, negotiation_models, mandate_status, responsible_party_user_id, published_at';
+  'id, memorial_number, title_blind, status, asset_type, land_type, area_m2, city, neighborhood, state, region_tags, zoning, master_plan_notes, buildable_potential_notes, coefficient, project_types, negotiation_conditions, asking_value, estimated_units, cash_share_pct, has_building, suspended_at, suspended_reason, negotiation_models, mandate_status, responsible_party_user_id, published_at';
+
+/** Mesma chave de useBlockers (curadoria): o painel de publicação do editor relê depois de cada mudança. */
+const blockersKey = (id: string) => ['admin', 'blockers', id] as const;
 
 export const editorKeys = {
   opp: (id: string) => ['editor', id, 'opportunity'] as const,
@@ -78,6 +84,8 @@ export type OpportunityPatch = Partial<
     | 'mandate_status'
     | 'responsible_party_user_id'
     | 'published_at'
+    | 'suspended_at'
+    | 'suspended_reason'
   >
 >;
 
@@ -91,6 +99,7 @@ export function useUpdateOpportunity(id: string) {
     onSuccess: () =>
       Promise.all([
         qc.invalidateQueries({ queryKey: editorKeys.opp(id) }),
+        qc.invalidateQueries({ queryKey: blockersKey(id) }),
         qc.invalidateQueries({ queryKey: ['opportunities-blind'] }),
       ]),
   });
@@ -122,6 +131,7 @@ export function useSetGeometry(id: string) {
     onSuccess: () =>
       Promise.all([
         qc.invalidateQueries({ queryKey: editorKeys.geometry(id) }),
+        qc.invalidateQueries({ queryKey: blockersKey(id) }),
         qc.invalidateQueries({ queryKey: ['opportunities-blind'] }),
       ]),
   });
@@ -233,7 +243,11 @@ export function useUploadMedia(id: string) {
         }
       }
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: editorKeys.media(id) }),
+    onSuccess: () =>
+      Promise.all([
+        qc.invalidateQueries({ queryKey: editorKeys.media(id) }),
+        qc.invalidateQueries({ queryKey: blockersKey(id) }),
+      ]),
   });
 }
 
@@ -250,7 +264,11 @@ export function useUpdateMedia(id: string) {
         .eq('id', input.mediaId);
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: editorKeys.media(id) }),
+    onSuccess: () =>
+      Promise.all([
+        qc.invalidateQueries({ queryKey: editorKeys.media(id) }),
+        qc.invalidateQueries({ queryKey: blockersKey(id) }),
+      ]),
   });
 }
 
@@ -262,7 +280,11 @@ export function useDeleteMedia(id: string) {
       if (error) throw error;
       await supabase.storage.from('opportunity-media').remove([m.storage_path]);
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: editorKeys.media(id) }),
+    onSuccess: () =>
+      Promise.all([
+        qc.invalidateQueries({ queryKey: editorKeys.media(id) }),
+        qc.invalidateQueries({ queryKey: blockersKey(id) }),
+      ]),
   });
 }
 
@@ -324,7 +346,11 @@ export function useUploadDocument(id: string) {
         throw error;
       }
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: editorKeys.documents(id) }),
+    onSuccess: () =>
+      Promise.all([
+        qc.invalidateQueries({ queryKey: editorKeys.documents(id) }),
+        qc.invalidateQueries({ queryKey: blockersKey(id) }),
+      ]),
   });
 }
 
@@ -336,7 +362,11 @@ export function useDeleteDocument(id: string) {
       if (error) throw error;
       await supabase.storage.from('opportunity-documents').remove([d.storage_path]);
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: editorKeys.documents(id) }),
+    onSuccess: () =>
+      Promise.all([
+        qc.invalidateQueries({ queryKey: editorKeys.documents(id) }),
+        qc.invalidateQueries({ queryKey: blockersKey(id) }),
+      ]),
   });
 }
 
@@ -359,6 +389,84 @@ export function useReviewAuthorization(id: string) {
       });
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: editorKeys.documents(id) }),
+    onSuccess: () =>
+      Promise.all([
+        qc.invalidateQueries({ queryKey: editorKeys.documents(id) }),
+        qc.invalidateQueries({ queryKey: blockersKey(id) }),
+      ]),
+  });
+}
+
+// ---------------------------------------------------------------- declaração do corretor (Modelo 1, D030)
+/** Mandato declarado pelo corretor responsável (RPC; o update direto é recusado pelo banco). */
+export function useSetMandate(id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (mandate: MandateStatus) => {
+      const { error } = await supabase.rpc('set_area_mandate', {
+        p_opportunity_id: id,
+        p_mandate: mandate,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () =>
+      Promise.all([
+        qc.invalidateQueries({ queryKey: editorKeys.opp(id) }),
+        qc.invalidateQueries({ queryKey: blockersKey(id) }),
+        qc.invalidateQueries({ queryKey: blockersKey(id) }),
+      ]),
+  });
+}
+
+export interface Exclusion {
+  id: string;
+  company_name: string;
+  organization_id: string | null;
+  source: 'broker' | 'curation';
+  created_at: string;
+}
+
+const exclusionsKey = (id: string) => ['editor', id, 'exclusions'] as const;
+
+/** Lista de exclusão ("já ofereci a…"): só o corretor responsável e a curadoria leem (RLS). */
+export function useExclusions(id: string) {
+  return useQuery({
+    queryKey: exclusionsKey(id),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('opportunity_exclusions')
+        .select('id, company_name, organization_id, source, created_at')
+        .eq('opportunity_id', id)
+        .order('company_name');
+      if (error) throw error;
+      return data as Exclusion[];
+    },
+  });
+}
+
+export function useAddExclusion(id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (companyName: string) => {
+      const { error } = await supabase
+        .from('opportunity_exclusions')
+        .insert({ opportunity_id: id, company_name: companyName });
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: exclusionsKey(id) }),
+  });
+}
+
+export function useRemoveExclusion(id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (exclusionId: string) => {
+      const { error } = await supabase
+        .from('opportunity_exclusions')
+        .delete()
+        .eq('id', exclusionId);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: exclusionsKey(id) }),
   });
 }

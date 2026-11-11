@@ -1,18 +1,21 @@
 # PermutaHub — guia para o Claude Code
 
 > **Ao iniciar qualquer sessão:** leia `docs/status.md` e `docs/decisions.md` antes de fazer qualquer coisa, e
-> **lembre o Arthur** das perguntas pendentes (seção "Lembrar o Arthur" do status e `docs/perguntas à fabio.md`).
+> **lembre o Arthur só das pendências que travam o desenvolvimento** (pedido de 2026-11-10); o resto fica para a
+> fase de fechamento.
 > A especificação completa está em `PermutaHub_PROMPT_CLAUDE_CODE_COMPLETO.md` (local, fora do git — D023; decisões posteriores em `docs/decisions.md` prevalecem).
 
 ## Produto (resumo)
 Mesa de negócios para terrenos/áreas de incorporação (início: Porto Alegre/RS). Fluxo:
-captação → qualificação → dossiê (Memorial Descritivo, versões cega e completa) → matchmaking por regras →
+captação → qualificação → dossiê (Memorial Descritivo) → matchmaking por regras →
 envio proativo (WhatsApp prioritário, e-mail complementar) → negociação → fechamento/remuneração.
+Lançamento (D030): só o **Modelo 1** — o corretor assina o termo, cadastra, publica e paga a cota mensal; o
+comprador cadastrado recebe o dossiê completo com o contato do corretor, sem pagar nem assinar.
 O ativo é a **rede** e a **rastreabilidade de quem apresentou o quê a quem**. Nome "PermutaHub" é provisório
 (constante `PRODUCT_NAME` em `src/config/product.ts`).
 
 ## As 12 regras inegociáveis
-1. Dado sensível (matrícula, endereço exato, proprietário e contatos) bloqueado por padrão, em tabela separada, com RLS; bloqueio vale **na API**.
+1. Dado sensível (matrícula, endereço exato, proprietário e contatos) bloqueado por padrão, em tabela separada, com RLS; bloqueio vale **na API**. Contato/identificação do proprietário **nunca** vai ao comprador; matrícula e endereço só com `buyer_sees_registry_and_address` (padrão desligado, DEPENDE DO JURÍDICO). Sem termo do comprador (D030).
 2. `distributions`, `distribution_events`, `access_log`, `agreements`, `registry_lookups` e `import_batches` são **append-only** (sem UPDATE/DELETE para ninguém, com trigger).
 3. A plataforma nunca aproxima proprietário e comprador diretamente. Toda oportunidade tem `responsible_party` e `mandate_status`.
 4. "Pode distribuir sem mandato?" é configurável (`platform_settings`); padrão **não**.

@@ -17,8 +17,9 @@ import { StatusBadge } from '@/components/ui/status-badge';
 import { FullPageMessage } from '@/app/guards';
 import { AgreementCard } from '@/features/agreements/AgreementCard';
 import { useHasAgreement } from '@/features/agreements/api';
-import type { NegotiationModel } from '../types';
-import { useAssetTypes } from '../asset-types';
+import type { MandateStatus, NegotiationModel } from '../types';
+import { useBlockers, usePublish } from '@/features/admin/curation-api';
+import { useAssetTypes, useProjectTypes } from '../asset-types';
 import {
   documentUrl,
   useCanEdit,
@@ -29,7 +30,11 @@ import {
   useEditorMedia,
   useGeometry,
   useLoadSensitive,
+  useAddExclusion,
+  useExclusions,
+  useRemoveExclusion,
   useReviewAuthorization,
+  useSetMandate,
   useSaveSensitive,
   useSetGeometry,
   useUpdateMedia,
@@ -45,6 +50,7 @@ import {
 
 const e = t.editor;
 const MODELS = Object.keys(t.enums.negotiationModel) as NegotiationModel[];
+const MANDATE_OPTIONS: MandateStatus[] = ['exclusive', 'non_exclusive', 'being_obtained', 'none'];
 const reviewTone: Record<ReviewStatus, Tone> = {
   pending: 'warning',
   accepted: 'success',
@@ -86,8 +92,13 @@ export function EditorPage() {
           <StatusBadge status={o.status} />
         </div>
       </div>
+      {o.suspended_at && (
+        <Notice tone="danger">{e.authorization.suspended(o.suspended_reason ?? '')}</Notice>
+      )}
       {!canEdit.data ? (
-        <Notice tone="warning">{e.locked}</Notice>
+        <Notice tone={o.published_at ? 'success' : 'warning'}>
+          {o.published_at ? e.authorization.published : e.locked}
+        </Notice>
       ) : (
         <>
           <DetailsSection o={o} />
@@ -130,7 +141,8 @@ const detailsSchema = z.object({
   coefficient: optNumber,
   master_plan_notes: z.string().trim(),
   buildable_potential_notes: z.string().trim(),
-  project_types: z.string(),
+  has_building: z.boolean(),
+  project_types: z.array(z.string()),
   negotiation_models: z.array(z.enum(MODELS as [NegotiationModel, ...NegotiationModel[]])),
   negotiation_conditions: z.string().trim(),
   asking_value: optNumber,
@@ -145,6 +157,14 @@ type DetailsValues = z.infer<typeof detailsSchema>;
 function DetailsSection({ o }: { o: EditableOpportunity }) {
   const update = useUpdateOpportunity(o.id);
   const assetTypes = useAssetTypes();
+  const projectTypes = useProjectTypes();
+  // Valores antigos fora da lista continuam marcáveis (não somem ao salvar).
+  const vocationOptions = [
+    ...(projectTypes.data ?? []),
+    ...o.project_types
+      .filter((p) => !(projectTypes.data ?? []).some((x) => x.value === p))
+      .map((p) => ({ value: p, label: p })),
+  ];
   const [saved, setSaved] = useState(false);
   const {
     register,
@@ -167,7 +187,8 @@ function DetailsSection({ o }: { o: EditableOpportunity }) {
       coefficient: o.coefficient?.toString() ?? '',
       master_plan_notes: o.master_plan_notes ?? '',
       buildable_potential_notes: o.buildable_potential_notes ?? '',
-      project_types: o.project_types.join(', '),
+      has_building: o.has_building,
+      project_types: o.project_types,
       negotiation_models: o.negotiation_models,
       negotiation_conditions: o.negotiation_conditions ?? '',
       asking_value: o.asking_value?.toString() ?? '',
@@ -192,7 +213,8 @@ function DetailsSection({ o }: { o: EditableOpportunity }) {
         coefficient: toNumber(v.coefficient),
         master_plan_notes: v.master_plan_notes || null,
         buildable_potential_notes: v.buildable_potential_notes || null,
-        project_types: list(v.project_types),
+        has_building: v.has_building,
+        project_types: v.project_types,
         negotiation_models: v.negotiation_models,
         negotiation_conditions: v.negotiation_conditions || null,
         asking_value: toNumber(v.asking_value),
@@ -241,6 +263,10 @@ function DetailsSection({ o }: { o: EditableOpportunity }) {
             ))}
           </Select>
         </div>
+        <label className="flex items-center gap-2 self-end pb-2 text-sm">
+          <input type="checkbox" className="accent-action" {...register('has_building')} />
+          {e.details.hasBuilding}
+        </label>
         {field('land_type', t.newArea.landType)}
         {field('zoning', t.dossier.zoning)}
         {field('coefficient', t.dossier.coefficient)}
@@ -248,10 +274,22 @@ function DetailsSection({ o }: { o: EditableOpportunity }) {
           span: 'sm:col-span-3',
           hint: e.details.commaHint,
         })}
-        {field('project_types', e.details.projectTypes, {
-          span: 'sm:col-span-3',
-          hint: e.details.commaHint,
-        })}
+        <fieldset className="space-y-2 sm:col-span-3">
+          <legend className="text-xs font-medium text-muted">{e.details.vocation}</legend>
+          <div className="flex flex-wrap gap-4">
+            {vocationOptions.map((p) => (
+              <label key={p.value} className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  value={p.value}
+                  className="accent-action"
+                  {...register('project_types')}
+                />
+                {p.label}
+              </label>
+            ))}
+          </div>
+        </fieldset>
         <div className="space-y-1.5 sm:col-span-3">
           <Label htmlFor="f-master">{e.details.masterPlan}</Label>
           <Textarea id="f-master" {...register('master_plan_notes')} />
@@ -820,16 +858,20 @@ function DocumentsSection({ id }: { id: string }) {
 
 // ---------------------------------------------------------------- autorização e termo por área
 function AuthorizationSection({ o }: { o: EditableOpportunity }) {
-  const { session } = useAuth();
+  const { session, isPlatformAdmin } = useAuth();
   const isResponsible = !!session && o.responsible_party_user_id === session.user.id;
   const areaTerm = useHasAgreement('broker_area_authorization', o.id);
 
   return (
     <Section title={e.authorization.title} description={e.authorization.body}>
-      <div className="space-y-4">
+      <div className="space-y-6">
+        <MandateField o={o} />
         <div>
           <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-            <h3 className="text-sm font-semibold text-ink">{e.authorization.ownerDoc}</h3>
+            <div>
+              <h3 className="text-sm font-semibold text-ink">{e.authorization.ownerDoc}</h3>
+              <p className="text-[11px] text-muted">{e.authorization.ownerDocHint}</p>
+            </div>
             <UploadDocumentButton
               id={o.id}
               kind="owner_authorization"
@@ -840,6 +882,7 @@ function AuthorizationSection({ o }: { o: EditableOpportunity }) {
           </div>
           <DocumentList id={o.id} kind="authorization" />
         </div>
+        <ExclusionsField id={o.id} />
         {isResponsible && (
           <div>
             <h3 className="mb-2 text-sm font-semibold text-ink">{e.authorization.areaTerm}</h3>
@@ -850,7 +893,127 @@ function AuthorizationSection({ o }: { o: EditableOpportunity }) {
             )}
           </div>
         )}
+        {(isResponsible || isPlatformAdmin) && <PublishPanel id={o.id} />}
       </div>
     </Section>
+  );
+}
+
+function MandateField({ o }: { o: EditableOpportunity }) {
+  const setMandate = useSetMandate(o.id);
+  const a = e.authorization;
+  return (
+    <div className="max-w-sm space-y-1.5">
+      <Label htmlFor="f-mandate">{a.mandate}</Label>
+      <Select
+        id="f-mandate"
+        value={o.mandate_status === 'unknown' ? '' : o.mandate_status}
+        disabled={setMandate.isPending}
+        onChange={(ev) => ev.target.value && setMandate.mutate(ev.target.value as MandateStatus)}
+      >
+        <option value="">{t.enums.mandate.unknown}</option>
+        {MANDATE_OPTIONS.map((m) => (
+          <option key={m} value={m}>
+            {t.enums.mandate[m]}
+          </option>
+        ))}
+      </Select>
+      {setMandate.isSuccess && <p className="text-xs text-success">{a.mandateSaved}</p>}
+      <FormAlert message={setMandate.isError ? t.common.error : null} />
+    </div>
+  );
+}
+
+function ExclusionsField({ id }: { id: string }) {
+  const list = useExclusions(id);
+  const add = useAddExclusion(id);
+  const remove = useRemoveExclusion(id);
+  const [name, setName] = useState('');
+  const x = e.authorization.exclusions;
+  const duplicate = (add.error as { code?: string } | null)?.code === '23505';
+
+  return (
+    <div data-testid="exclusions">
+      <h3 className="text-sm font-semibold text-ink">{x.title}</h3>
+      <p className="mb-2 text-[11px] text-muted">{x.body}</p>
+      <form
+        className="flex max-w-md gap-2"
+        onSubmit={(ev) => {
+          ev.preventDefault();
+          if (name.trim().length < 2) return;
+          add.mutate(name.trim(), { onSuccess: () => setName('') });
+        }}
+      >
+        <Input
+          aria-label={x.placeholder}
+          placeholder={x.placeholder}
+          value={name}
+          onChange={(ev) => setName(ev.target.value)}
+        />
+        <Button type="submit" variant="secondary" disabled={add.isPending}>
+          {x.add}
+        </Button>
+      </form>
+      <FormAlert message={add.isError ? (duplicate ? x.duplicate : t.common.error) : null} />
+      {list.data?.length ? (
+        <ul className="mt-2 divide-y divide-border rounded-md border border-border">
+          {list.data.map((ex) => (
+            <li key={ex.id} className="flex items-center justify-between gap-2 px-3 py-2 text-sm">
+              <span>
+                {ex.company_name}
+                {ex.organization_id && (
+                  <span className="ml-2 text-xs text-muted">· {x.linked}</span>
+                )}
+              </span>
+              <Button
+                variant="ghost"
+                size="sm"
+                disabled={remove.isPending}
+                onClick={() => remove.mutate(ex.id)}
+                aria-label={`${x.remove} ${ex.company_name}`}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="mt-2 text-xs text-muted">{x.empty}</p>
+      )}
+    </div>
+  );
+}
+
+/** Publicação pelo próprio corretor (D030): lista o que falta; sem pendências, publica. */
+function PublishPanel({ id }: { id: string }) {
+  const blockers = useBlockers(id);
+  const publish = usePublish(id);
+  const p = e.authorization.publish;
+  const items = blockers.data ?? [];
+
+  return (
+    <div className="rounded-lg border border-border bg-surface p-4" data-testid="publish-panel">
+      <h3 className="text-sm font-semibold text-primary">{p.title}</h3>
+      {items.length > 0 ? (
+        <>
+          <p className="mt-1 text-xs text-muted">{p.pending}</p>
+          <ul className="mt-1 list-inside list-disc text-sm text-ink">
+            {items.map((b) => (
+              <li key={b}>{t.curation.blockers[b] ?? b}</li>
+            ))}
+          </ul>
+        </>
+      ) : (
+        <p className="mt-1 text-sm text-ink">{p.ready}</p>
+      )}
+      <Button
+        className="mt-3"
+        disabled={blockers.isLoading || items.length > 0 || publish.isPending}
+        onClick={() => publish.mutate(null)}
+      >
+        {publish.isPending ? p.publishing : p.button}
+      </Button>
+      <FormAlert message={publish.isError ? p.error : null} />
+    </div>
   );
 }

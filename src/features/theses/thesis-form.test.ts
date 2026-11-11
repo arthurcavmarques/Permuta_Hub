@@ -54,18 +54,23 @@ describe('tese: formulário ↔ banco', () => {
     const form = {
       ...emptyThesisForm(),
       name: 'Glebas',
-      asset_types: ['gleba'],
+      asset_types: ['area_rural'],
       zonings: 'Mista, Residencial',
       min_coefficient: '1.5',
       negotiation_models: ['swap' as const],
+      project_types: ['chacreamento', 'mcmv'],
+      building_filter: 'exclude' as const,
     };
     const r = formToThesis(form, 'org-2');
     if (!('input' in r)) throw new Error('esperava input');
+    expect(r.input.building_filter).toBe('exclude');
     const back = thesisToForm({ ...r.input, id: 't', updated_at: '' });
     expect(back).toMatchObject({
       name: 'Glebas',
       zonings: 'Mista, Residencial',
       min_coefficient: '1.5',
+      project_types: ['chacreamento', 'mcmv'],
+      building_filter: 'exclude',
     });
   });
 });

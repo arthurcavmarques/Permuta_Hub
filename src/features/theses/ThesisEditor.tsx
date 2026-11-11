@@ -4,11 +4,11 @@ import { Pause, Pencil, Play } from 'lucide-react';
 import { t } from '@/i18n/pt-BR';
 import { formatArea, formatMoneyCompact } from '@/lib/format';
 import { Button } from '@/components/ui/button';
-import { Input, Label, Textarea } from '@/components/ui/form';
+import { Input, Label, Select, Textarea } from '@/components/ui/form';
 import { Badge, FieldError, FormAlert } from '@/components/ui/section';
-import { useAssetTypes } from '@/features/opportunities/asset-types';
+import { optionLabel, useAssetTypes, useProjectTypes } from '@/features/opportunities/asset-types';
 import type { NegotiationModel } from '@/features/opportunities/types';
-import { useSaveThesis, type Thesis, type ThesisInput } from './api';
+import { useSaveThesis, type BuildingFilter, type Thesis, type ThesisInput } from './api';
 import {
   emptyThesisForm,
   formToThesis,
@@ -19,6 +19,7 @@ import {
 
 const th = t.theses;
 const MODELS = Object.keys(t.enums.negotiationModel) as NegotiationModel[];
+const BUILDING: BuildingFilter[] = ['any', 'only', 'exclude'];
 
 /** Resumo de uma linha da tese (para a lista). */
 export function ThesisSummary({ thesis: s }: { thesis: Thesis }) {
@@ -33,6 +34,7 @@ export function ThesisSummary({ thesis: s }: { thesis: Thesis }) {
     <p className="text-sm text-muted">
       {[
         s.asset_types.length ? s.asset_types.map(label).join(', ') : th.summary.anyType,
+        s.building_filter !== 'any' ? th.building[s.building_filter] : null,
         region.length ? region.join(', ') : th.summary.anyRegion,
         th.summary.area(formatArea(s.min_area_m2), formatArea(s.max_area_m2)),
         s.negotiation_models.length
@@ -107,7 +109,15 @@ export function ThesisForm({
   onDone: () => void;
 }) {
   const assetTypes = useAssetTypes();
+  const projectTypes = useProjectTypes();
   const save = useSaveThesis();
+  // Valores antigos fora da lista continuam marcáveis.
+  const vocationOptions = [
+    ...(projectTypes.data ?? []),
+    ...(thesis?.project_types ?? [])
+      .filter((p) => !(projectTypes.data ?? []).some((x) => x.value === p))
+      .map((p) => ({ value: p, label: optionLabel(projectTypes.data, p) })),
+  ];
   const [errors, setErrors] = useState<ThesisFormErrors>({});
   const { register, handleSubmit } = useForm<ThesisFormValues>({
     defaultValues: thesis ? thesisToForm(thesis) : emptyThesisForm(),
@@ -171,6 +181,16 @@ export function ThesisForm({
               ))}
             </div>
           </div>
+          <div className="max-w-xs space-y-1.5">
+            <Label htmlFor="th-building">{th.fields.building}</Label>
+            <Select id="th-building" {...register('building_filter')}>
+              {BUILDING.map((b) => (
+                <option key={b} value={b}>
+                  {th.building[b]}
+                </option>
+              ))}
+            </Select>
+          </div>
           <div className="grid gap-4 sm:grid-cols-3">
             {text('cities', th.fields.cities, { hint: th.commaHint })}
             {text('region_tags', th.fields.regionTags, { hint: th.commaHint })}
@@ -205,11 +225,26 @@ export function ThesisForm({
           <div className="grid gap-4 sm:grid-cols-3">
             {text('zonings', th.fields.zonings, { hint: th.commaHint })}
             {text('min_coefficient', th.fields.minCoefficient)}
-            {text('project_types', th.fields.projectTypes, { hint: th.commaHint })}
             {text('neighborhoods', th.fields.neighborhoods, {
               span: 'sm:col-span-3',
               hint: th.commaHint,
             })}
+          </div>
+          <div className="space-y-2">
+            <p className="text-xs font-medium text-muted">{th.fields.projectTypes}</p>
+            <div className="flex flex-wrap gap-4">
+              {vocationOptions.map((p) => (
+                <label key={p.value} className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    value={p.value}
+                    className="accent-action"
+                    {...register('project_types')}
+                  />
+                  {p.label}
+                </label>
+              ))}
+            </div>
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="th-notes">{th.fields.notes}</Label>

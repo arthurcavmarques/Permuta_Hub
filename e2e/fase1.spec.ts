@@ -101,7 +101,7 @@ test('corretor se cadastra, fica pendente, é aprovado pela curadoria e cadastra
   await page.getByLabel('Permuta').check();
   await page.getByRole('button', { name: 'Cadastrar área' }).click();
   await expect(page).toHaveURL(/\/editar$/);
-  await page.getByRole('link', { name: 'Ver versão cega' }).click();
+  await page.getByRole('link', { name: 'Ver dossiê' }).click();
   await expect(page.getByRole('heading', { level: 1 })).toContainText('2.500 m²');
   await expect(page.getByText('Captada').first()).toBeVisible();
 });

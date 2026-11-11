@@ -35,6 +35,7 @@ export interface BlindOpportunity {
   mandate_status: MandateStatus;
   estimated_units: number | null;
   cash_share_pct: number | null;
+  has_building: boolean;
   approx_lng: number | null;
   approx_lat: number | null;
   approx_radius_m: number;

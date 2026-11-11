@@ -13,12 +13,13 @@ import {
   paymentSplit,
   valuePerUnit,
 } from '@/lib/format';
-import { ApproxLocationMap } from '@/lib/map';
+import { ApproxLocationMap, GeometryEditorMap } from '@/lib/map';
 import { Button } from '@/components/ui/button';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { FullPageMessage } from '@/app/guards';
 import { Wordmark } from '@/app/AppShell';
-import { useBlindMedia, useBlindOpportunity } from './api';
+import { useBlindMedia, useBlindOpportunity, useBrokerContact, useDossierGeometry } from './api';
+import { optionLabel, useAssetTypes, useProjectTypes } from './asset-types';
 import { SensitivePanel } from './SensitivePanel';
 import { useCanEdit } from './editor/api';
 import { useAuth } from '@/lib/auth';
@@ -57,11 +58,34 @@ function StudyFigure({ label, value }: { label: string; value: string | null }) 
   );
 }
 
+/** Contato do corretor responsável: o comprador fala direto com ele (D030). */
+function BrokerContactSection({ opportunityId }: { opportunityId: string }) {
+  const contact = useBrokerContact(opportunityId);
+  const c = contact.data;
+  if (!c?.full_name) return null;
+  return (
+    <Section title={t.dossier.contact.title}>
+      <p className="text-xs text-muted print:hidden">{t.dossier.contact.body}</p>
+      <dl className="mt-2 space-y-0.5" data-testid="broker-contact">
+        <dt className="sr-only">{t.dossier.contact.title}</dt>
+        <dd className="font-semibold text-primary">{c.full_name}</dd>
+        {c.organization_name && <dd>{c.organization_name}</dd>}
+        {c.creci && <dd className="text-muted">{t.dossier.contact.creci(c.creci)}</dd>}
+        {c.phone && <dd className="tabular">{c.phone}</dd>}
+        {c.email && <dd>{c.email}</dd>}
+      </dl>
+    </Section>
+  );
+}
+
 export function DossierPage() {
   const { id = '' } = useParams();
   const { data: o, isLoading, isError } = useBlindOpportunity(id);
   const media = useBlindMedia(id);
   const canEdit = useCanEdit(id);
+  const geometry = useDossierGeometry(id);
+  const assetTypes = useAssetTypes();
+  const projectTypes = useProjectTypes();
   const { session } = useAuth();
 
   if (isLoading) return <FullPageMessage title={t.common.loading} />;
@@ -117,7 +141,7 @@ export function DossierPage() {
             <Wordmark />
           </span>
           <span className="rounded-full border border-accent/60 px-2 py-0.5 text-[11px] text-accent print:hidden">
-            {t.dossier.blindBadge}
+            {t.dossier.confidentialBadge}
           </span>
         </div>
         <h1 className="mt-2 text-2xl font-semibold leading-tight">{o.title}</h1>
@@ -135,7 +159,14 @@ export function DossierPage() {
 
       <div className="px-5 print:px-0">
         <Section title={t.dossier.sections.location}>
-          {o.approx_lat !== null && o.approx_lng !== null ? (
+          {geometry.data ? (
+            <>
+              <div className="h-64 overflow-hidden rounded-lg border border-border sm:h-80 print:h-72">
+                <GeometryEditorMap geometry={geometry.data} draft={[]} />
+              </div>
+              <p className="mt-2 text-xs text-muted">{t.dossier.exactLocation}</p>
+            </>
+          ) : o.approx_lat !== null && o.approx_lng !== null ? (
             <>
               <div className="h-64 overflow-hidden rounded-lg border border-border sm:h-80 print:h-72">
                 <ApproxLocationMap
@@ -155,6 +186,14 @@ export function DossierPage() {
 
         <Section title={t.dossier.sections.characteristics}>
           <dl className="grid grid-cols-2 gap-3">
+            <div>
+              <dt className="text-xs text-muted">{t.dossier.assetType}</dt>
+              <dd>{o.asset_type ? optionLabel(assetTypes.data, o.asset_type) : <Empty />}</dd>
+            </div>
+            <div>
+              <dt className="text-xs text-muted">{t.dossier.building}</dt>
+              <dd>{o.has_building ? t.dossier.hasBuilding : t.dossier.noBuilding}</dd>
+            </div>
             <div>
               <dt className="text-xs text-muted">{t.dossier.landType}</dt>
               <dd className="capitalize">{o.land_type ?? <Empty />}</dd>
@@ -184,9 +223,9 @@ export function DossierPage() {
               {o.project_types.map((p) => (
                 <li
                   key={p}
-                  className="rounded-full border border-border bg-surface px-3 py-1 text-xs capitalize"
+                  className="rounded-full border border-border bg-surface px-3 py-1 text-xs"
                 >
-                  {p}
+                  {optionLabel(projectTypes.data, p)}
                 </li>
               ))}
             </ul>
@@ -283,8 +322,9 @@ export function DossierPage() {
           {o.negotiation_conditions && <p className="mt-3">{o.negotiation_conditions}</p>}
         </Section>
 
-        {/* Nunca vai para o PDF: o PDF é sempre a versão cega. O painel se esconde sozinho
-            para quem não pode ler nem aceitar o termo (sensitive_access_state). */}
+        <BrokerContactSection opportunityId={o.id} />
+
+        {/* Nunca vai para o PDF. O painel se esconde sozinho para quem não pode ler (sensitive_access_state). */}
         <div className="print:hidden">
           <SensitivePanel opportunityId={o.id} />
         </div>
@@ -302,7 +342,7 @@ export function DossierPage() {
       >
         <span className="font-semibold text-primary">{PRODUCT_NAME}</span>
         <span>
-          {o.memorial_number} · {t.dossier.blindBadge}
+          {o.memorial_number} · {t.dossier.confidentialBadge}
         </span>
         <span>{t.dossier.printedFor(session?.user.email ?? '', formatDate(new Date()))}</span>
       </div>
